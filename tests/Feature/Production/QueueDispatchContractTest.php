@@ -54,9 +54,12 @@ final class QueueDispatchContractTest extends TestCase
      * @var array<string, string>
      */
     private const DEFERRED = [
+        'BuildPersonalDataExportJob' => 'No producer yet: the operator Build export action in the privacy-request panel does not dispatch this job. Building and releasing an archive are separate by design (see class docblock).',
+        'DistributeAgentCommissionsJob' => 'No producer remains. The docblock ties it to legacy lottery-entry placement (lotteryEntryId), whose sales are closed by LegacyLotteryEntryException.',
+        'ChunkedSettlementJob' => 'Retired legacy shape. handle() throws LegacyLotteryEntryException; kept only so previously queued payloads deserialize and fail closed.',
+        'ProcessWinningEntryPayoutJob' => 'Retired legacy shape kept so previously queued payloads fail closed. A queued user, amount or tier is never proof of a prize; existing LotteryEntry claims require reconciliation.',
         // ── Phase 5.2: real-money disbursement ──────────────────────────
         'DisburseApprovedPrizeJob' => 'Phase 5.2 real-money payout. Gated behind PRIZE_PAYOUT_SAFETY_MODE=LIVE, which is DISABLED by default and asserted by ProductionConfigSafetyTest.',
-        'ExecutePayoutTransferJob' => 'Phase 5.2. Fans a payout batch into transfers; has no meaning until disbursement exists.',
         'DisburseWithdrawalJob' => 'Phase 5.2. Withdrawal disbursement shares the payout rails.',
         'ProcessPrizeSettlementJob' => 'Phase 5.2. The monetary counterpart of the non-monetary settlement simulation.',
         'ProcessFinancialReconciliationJob' => 'Phase 5.2. Reconciles money movements that cannot occur while payout is DISABLED.',

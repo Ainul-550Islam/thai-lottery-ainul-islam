@@ -8,6 +8,7 @@ use App\Exceptions\GloDealerException;
 use App\Models\GloSalesPoint;
 use App\Services\Lottery\GloSalesPointService;
 use App\Support\Admin\AdminAccess;
+use App\Support\Admin\AdminPermission;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Form;
 use Filament\Notifications\Notification;
@@ -36,9 +37,9 @@ class GloSalesPointsPage extends Page
 
     public static function canAccess(): bool
     {
-        return AdminAccess::currentAny([
-            AdminAccess::MANAGE_GLO_SALES_POINTS,
-            AdminAccess::VIEW_AUDIT_LOGS,
+        return AdminAccess::permitsAny([
+            AdminPermission::GLO_SALESPOINTS_MANAGE,
+            AdminPermission::AUDIT_LOGS_VIEW,
         ]);
     }
 

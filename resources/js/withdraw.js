@@ -1,3 +1,4 @@
+import toast from './ui/toast.js';
 /**
  * Withdrawal Client Module.
  *
@@ -49,7 +50,7 @@
             var amount = amountInput ? amountInput.value.trim() : '';
             if (!/^\d+(\.\d{1,2})?$/.test(amount) || !/[1-9]/.test(amount)) {
                 event.preventDefault();
-                alert('Please enter a valid withdrawal amount.');
+                toast.error('Please enter a valid withdrawal amount.');
                 return false;
             }
 

@@ -49,21 +49,25 @@ class GloL6ActiveAllocation extends Model
         });
     }
 
+    /** @return BelongsTo<Draw, $this> */
     public function draw(): BelongsTo
     {
         return $this->belongsTo(Draw::class);
     }
 
+    /** @return BelongsTo<User, $this> */
     public function owner(): BelongsTo
     {
         return $this->belongsTo(User::class, 'owner_user_id');
     }
 
+    /** @return BelongsTo<GloL6TicketReservation, $this> */
     public function reservation(): BelongsTo
     {
         return $this->belongsTo(GloL6TicketReservation::class, 'reservation_id');
     }
 
+    /** @return BelongsTo<GloTicket, $this> */
     public function gloTicket(): BelongsTo
     {
         return $this->belongsTo(GloTicket::class, 'glo_ticket_id');

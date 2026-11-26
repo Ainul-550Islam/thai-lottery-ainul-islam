@@ -8,9 +8,13 @@ use App\Providers\Filament\AdminPanelProvider;
 use App\Providers\ProductionSafetyServiceProvider;
 use App\Providers\PaymentOpsServiceProvider;
 use App\Providers\QueueServiceProvider;
+use App\Providers\RewardsServiceProvider;
 use App\Providers\ThaiRailsServiceProvider;
 use App\Providers\WalletConversionServiceProvider;
 use App\Providers\FrontendOpsServiceProvider;
+use App\Providers\LotteryGamesServiceProvider;
+use App\Providers\PlayerExperienceServiceProvider;
+use App\Providers\SystemSettingsServiceProvider;
 
 return [
     AppServiceProvider::class,
@@ -25,6 +29,12 @@ return [
     // The existing ops provider owns payment readiness boot refusal and routes.
     PaymentOpsServiceProvider::class,
     WalletConversionServiceProvider::class,
+    RewardsServiceProvider::class,
+    SystemSettingsServiceProvider::class,
     AdminPanelProvider::class,
     FrontendOpsServiceProvider::class,
+    // Batch 2: digit-game framework (registry, providers, settlement adapter, listeners).
+    LotteryGamesServiceProvider::class,
+    // Batch 3: FX display driver + the player-experience bindings.
+    PlayerExperienceServiceProvider::class,
 ];

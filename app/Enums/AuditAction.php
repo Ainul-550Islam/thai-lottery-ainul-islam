@@ -26,6 +26,7 @@ enum AuditAction: string
     case DataExport = 'data_export';
     case DataImport = 'data_import';
     case Reconcile = 'reconcile';
+    case FraudAlertReviewed = 'fraud_alert_reviewed';
 
     public function label(): string
     {
@@ -52,6 +53,7 @@ enum AuditAction: string
             self::DataExport => 'Data Export',
             self::DataImport => 'Data Import',
             self::Reconcile => 'Financial Reconciliation',
+            self::FraudAlertReviewed => 'Fraud Alert Reviewed',
         };
     }
 
@@ -64,7 +66,7 @@ enum AuditAction: string
             self::Deposit, self::Withdraw, self::Payout, self::Refund, self::Reversal, self::Reconcile => 'finance',
             self::RoleAssign, self::RoleRevoke, self::PermissionGrant, self::PermissionRevoke => 'access',
             self::ConfigChange => 'system',
-            self::SecurityAlert => 'security',
+            self::SecurityAlert, self::FraudAlertReviewed => 'security',
             self::DataExport, self::DataImport => 'data',
         };
     }
@@ -72,7 +74,7 @@ enum AuditAction: string
     public function severity(): string
     {
         return match ($this) {
-            self::LoginFailed, self::SecurityAlert, self::Delete => 'high',
+            self::LoginFailed, self::SecurityAlert, self::Delete, self::FraudAlertReviewed => 'high',
             self::RoleAssign, self::RoleRevoke, self::PermissionGrant, self::PermissionRevoke, self::ConfigChange => 'medium',
             default => 'low',
         };

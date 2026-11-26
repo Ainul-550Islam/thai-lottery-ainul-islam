@@ -8,6 +8,7 @@ use App\Models\Draw;
 use App\Models\GloNotificationDelivery;
 use App\Models\GloSavedTicket;
 use App\Support\Admin\AdminAccess;
+use App\Support\Admin\AdminPermission;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Form;
 use Filament\Pages\Page;
@@ -39,10 +40,10 @@ class GloSavedTicketNotificationsPage extends Page
 
     public static function canAccess(): bool
     {
-        return AdminAccess::currentAny([
-            AdminAccess::VIEW_AUDIT_LOGS,
-            AdminAccess::REVIEW_GLO_DEALER_REQUESTS,
-            AdminAccess::MANAGE_GLO_SALES_POINTS,
+        return AdminAccess::permitsAny([
+            AdminPermission::AUDIT_LOGS_VIEW,
+            AdminPermission::GLO_DEALERS_REVIEW,
+            AdminPermission::GLO_SALESPOINTS_MANAGE,
         ]);
     }
 

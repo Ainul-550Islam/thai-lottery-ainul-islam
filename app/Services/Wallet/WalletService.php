@@ -36,7 +36,7 @@ class WalletService
     /**
      * Resolve or initialize the canonical wallet for a user and currency.
      */
-    public function getOrCreateWallet(int|User $user, string|Currency $currency = 'THB'): Wallet
+    public function getOrCreateWallet(int|User $user, string|Currency $currency = 'THB', WalletType $type = WalletType::Primary): Wallet
     {
         $userId = $user instanceof User ? (int) $user->getKey() : (int) $user;
         $currencyEnum = is_string($currency) ? Currency::from(strtoupper($currency)) : $currency;
@@ -48,7 +48,7 @@ class WalletService
             [
                 'user_id' => $userId,
                 'currency' => $currencyEnum,
-                'type' => WalletType::Primary,
+                'type' => $type,
             ]
         );
     }

@@ -5,9 +5,11 @@ declare(strict_types=1);
 namespace App\Http\Support;
 
 use App\Enums\AuditAction;
+use App\Enums\LoginEventOutcome;
 use App\Enums\RiskLevel;
 use App\Models\AuditLog;
 use App\Models\User;
+use App\Services\Security\LoginHistory\LoginEventRecorder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Throwable;
@@ -44,6 +46,17 @@ final class AuthAuditRecorder
             $user->getKey(),
             ['device_name' => $deviceName],
         );
+
+        try {
+            app(LoginEventRecorder::class)->recordFromRequest(
+                request: $request,
+                member: $user,
+                identifier: (string) ($user->email ?: $user->username),
+                outcome: LoginEventOutcome::Success,
+            );
+        } catch (Throwable $exception) {
+            Log::warning('auth.login_event_record_failed', ['exception' => $exception->getMessage()]);
+        }
     }
 
     public function recordLogout(Request $request, User $user): void
@@ -76,6 +89,25 @@ final class AuthAuditRecorder
                 'reason' => $reason,
             ],
         );
+
+        try {
+            /** @var User|null $member */
+            $member = $userId !== null ? User::query()->find($userId) : null;
+            $outcome = match ($reason) {
+                'inactive_account', 'blocked' => LoginEventOutcome::Blocked,
+                'mfa_required' => LoginEventOutcome::MfaRequired,
+                default => LoginEventOutcome::Failed,
+            };
+
+            app(LoginEventRecorder::class)->recordFromRequest(
+                request: $request,
+                member: $member,
+                identifier: $identifier,
+                outcome: $outcome,
+            );
+        } catch (Throwable $exception) {
+            Log::warning('auth.login_event_failure_record_failed', ['exception' => $exception->getMessage()]);
+        }
     }
 
     /**
@@ -101,7 +133,7 @@ final class AuthAuditRecorder
                 'description' => $description,
                 'ip_address' => $request->ip(),
                 'user_agent' => mb_substr((string) $request->userAgent(), 0, 1000),
-                'url' => $request->fullUrl(),
+                'url' => mb_substr($request->url(), 0, 255),
                 'method' => $request->method(),
                 'metadata' => $metadata,
             ]);

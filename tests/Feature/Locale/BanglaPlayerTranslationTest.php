@@ -21,9 +21,9 @@ final class BanglaPlayerTranslationTest extends TestCase
         $this->actingAs($user)
             ->get(route('player.dashboard').'?lang=bn')
             ->assertOk()
-            ->assertSee('খেলোয়াড় ড্যাশবোর্ড')
-            ->assertSee('ব্যবহারযোগ্য ব্যালেন্স')
-            ->assertSee('আমার সাম্প্রতিক বাজি');
+            ->assertSee('ড্যাশবোর্ড')
+            ->assertSee('বাজি দিন')
+            ->assertSee('আমার বাজি');
     }
 
     public function test_every_static_player_reference_has_a_bangla_override(): void

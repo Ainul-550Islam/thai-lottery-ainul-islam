@@ -28,7 +28,7 @@ return [
     // Batch 02: keys referenced by the shipped views but never defined.
     'bottom_two_label' => 'Two-digit tail',
     'breakdown_link' => 'View the full prize breakdown',
-    'card_draw' => 'Draw :number',
+    'card_draw' => 'Draw #:number',
     'date_pending' => 'Draw date not published',
     'first_prize_winner' => 'First prize',
     'fixture_sample' => 'Sample data — not a published draw',

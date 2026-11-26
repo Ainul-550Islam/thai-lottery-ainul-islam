@@ -41,7 +41,7 @@ php artisan test:financial-lifecycle-proof
 
 echo "================================================================================"
 echo "🎉 SUCCESS: Local environment initialized and all security invariants verified!"
-echo "   • SOC & Financial Dashboard : http://localhost:8000/admin/index.html"
+echo "   • SOC & Financial Dashboard : http://localhost:8000/admin-preview.html"
 echo "   • OpenAPI 3.1 Documentation : http://localhost:8000/docs/index.html"
 echo "   • Prometheus Telemetry API  : http://localhost:8000/api/v1/metrics"
 echo "================================================================================"

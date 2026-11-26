@@ -90,6 +90,9 @@ final class QuarantineScanIdentityTest extends TestCase
             Storage::disk($disk)->put($record->private_storage_key, self::CHANGED);
         }
 
+        if (! in_array('unix', stream_get_transports(), true)) {
+            $this->markTestSkipped('unix sockets are unavailable on this PHP build (Windows); runs on Linux CI.');
+        }
         $base = sys_get_temp_dir().'/quarantine-scan-'.bin2hex(random_bytes(8));
         $socket = $base.'.sock';
         $transcript = $base.'.json';

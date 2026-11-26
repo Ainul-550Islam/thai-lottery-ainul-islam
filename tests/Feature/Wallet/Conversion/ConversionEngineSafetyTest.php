@@ -276,6 +276,7 @@ final class ConversionEngineSafetyTest extends ConversionTestCase
         Sanctum::actingAs($member['user']);
         $this->getJson('/api/v1/wallet/conversions/summary')->assertOk()->assertJsonPath('data.summary.completed', 1);
         $this->getJson('/api/v1/wallet/conversions')->assertOk()->assertJsonPath('data.meta.total', 1);
+        \Illuminate\Support\Facades\Auth::shouldUse('web');
         $this->actingAs($member['user'])->get('/wallet/convert')->assertOk();
     }
 

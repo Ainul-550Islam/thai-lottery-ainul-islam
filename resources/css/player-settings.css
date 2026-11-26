@@ -1,6 +1,6 @@
 /**
  * Lottery Platform Member Account & System Settings Portal Stylesheet
- * Brand colors: Dark Navy (#0b0f17, #131b29), Golden Amber (#f59e0b, #d97706), Emerald (#10b981), Rose (#ef4444)
+ * Brand colors: Dark Navy (#0b0f17, #131b29), Golden Amber (#f59e0b, #d97706), Emerald (#e6ae26), Rose (#ef4444)
  */
 
 :root {
@@ -13,10 +13,10 @@
     --st-border-gold: #f59e0b;
     --st-gold-main: #f59e0b;
     --st-gold-hover: #d97706;
-    --st-green-main: #10b981;
+    --st-green-main: #e6ae26;
     --st-red-main: #ef4444;
-    --st-text-main: #f1f5f9;
-    --st-text-muted: #94a3b8;
+    --st-text-main: #f4ecd8;
+    --st-text-muted: #b3a37d;
 }
 
 body.st-body {
@@ -200,7 +200,7 @@ body.st-body {
 }
 
 .st-setting-row:hover {
-    border-color: #334155;
+    border-color: #4a3d1f;
 }
 
 .st-setting-info {
@@ -272,7 +272,7 @@ body.st-body {
     left: 0;
     right: 0;
     bottom: 0;
-    background-color: #1e293b;
+    background-color: #2b2312;
     border: 1px solid var(--st-border-main);
     border-radius: 9999px;
     transition: 0.2s;
@@ -285,20 +285,20 @@ body.st-body {
     width: 18px;
     left: 3px;
     bottom: 3px;
-    background-color: #94a3b8;
+    background-color: #b3a37d;
     border-radius: 50%;
     transition: 0.2s;
 }
 
 input:checked + .st-toggle-slider {
-    background-color: rgba(16, 185, 129, 0.25);
+    background-color: rgba(230, 174, 38, 0.25);
     border-color: var(--st-green-main);
 }
 
 input:checked + .st-toggle-slider:before {
     transform: translateX(22px);
     background-color: var(--st-green-main);
-    box-shadow: 0 0 10px rgba(16, 185, 129, 0.6);
+    box-shadow: 0 0 10px rgba(230, 174, 38, 0.6);
 }
 
 /* BUTTONS */

@@ -20,7 +20,7 @@ final class Pages77To100StaticContractTest extends TestCase
         $routes = file_get_contents(base_path('routes/web.php'));
 
         self::assertIsString($routes);
-        self::assertStringContainsString("Route::prefix('admin')->name('admin.')->middleware(['admin.auth', 'can:access-admin'])->group", $routes);
+        self::assertStringContainsString("Route::prefix('admin')->name('admin.')->middleware(['admin.auth', 'auth.session', 'can:access-admin'])->group", $routes);
         self::assertStringContainsString("Route::post('/api/reconciliation'", $routes);
         self::assertStringContainsString("LottoFinExecutiveDashboardController::class, 'unsupportedMutation'", $routes);
         self::assertStringContainsString("/kyc/{documentToken}/download", $routes);
@@ -49,7 +49,7 @@ final class Pages77To100StaticContractTest extends TestCase
             self::assertStringContainsString($route, $routes);
         }
 
-        self::assertStringContainsString("Route::middleware('auth')->group(function (): void {", $routes);
+        self::assertStringContainsString("Route::middleware(['auth', 'auth.session'])->group(function (): void {", $routes);
         self::assertStringContainsString("\$callbackPath('success_url', '/payment/success')", $routes);
         self::assertStringContainsString("\$callbackPath('failure_url', '/payment/failure')", $routes);
         self::assertStringContainsString("\$callbackPath('cancel_url', '/payment/cancel')", $routes);
@@ -86,7 +86,7 @@ final class Pages77To100StaticContractTest extends TestCase
             "Route::get('/account-verification'",
             "Route::get('/responsible-gaming'",
             "Route::get('/self-exclusion'",
-            "Route::get('/users'",
+            "Route::get('/legacy/users'",
             "Route::get('/users/{user}'",
             "Route::get('/users/{user}/finance'",
             "Route::get('/bets/{bet}'",
@@ -109,7 +109,7 @@ final class Pages77To100StaticContractTest extends TestCase
         self::assertStringContainsString("Route::get('/support'", $routes);
         self::assertStringContainsString("Route::get('/support/{reference}'", $routes);
         self::assertStringContainsString("Route::get('/notifications'", $routes);
-        self::assertStringContainsString("Route::prefix('agent')->name('agent.')->middleware('auth')->group", $routes);
+        self::assertStringContainsString("Route::prefix('agent')->name('agent.')->middleware(['auth', 'auth.session'])->group", $routes);
         self::assertStringContainsString('SupportPortalController::class', $routes);
         self::assertStringContainsString('AgentPortalController::class', $routes);
         self::assertStringContainsString('NotificationCenterController::class', $routes);
@@ -156,13 +156,13 @@ final class Pages77To100StaticContractTest extends TestCase
 
     public function test_audit_matrix_has_one_row_for_each_page_77_through_100(): void
     {
-        $audit = file_get_contents(base_path('audit.md'));
+        $audit = file_get_contents(base_path('docs/audit-reports/audit.md'));
 
         self::assertIsString($audit);
         for ($page = 77; $page <= 100; $page++) {
             self::assertMatchesRegularExpression('/\| '.$page.' \|/', $audit);
         }
-        self::assertStringContainsString('NOT VERIFIED — RUNTIME UNAVAILABLE', $audit);
+        self::assertStringContainsString('STATIC_ONLY. Runtime, production, live payments and official-source authenticity are NOT_VERIFIED.', $audit);
     }
 
     /**

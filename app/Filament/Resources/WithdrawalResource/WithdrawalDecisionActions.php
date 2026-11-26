@@ -9,6 +9,7 @@ use App\Models\Withdrawal;
 use App\Services\Finance\WithdrawalApprovalService;
 use App\Services\Payment\WithdrawalDisbursementService;
 use App\Support\Admin\AdminAccess;
+use App\Support\Admin\AdminPermission;
 use App\Support\Admin\AdminFormat;
 use App\Support\Admin\OperatorActionFactory;
 use Filament\Actions\Action;
@@ -79,7 +80,7 @@ final class WithdrawalDecisionActions
                         ->label('Note (optional, kept on the withdrawal)')
                         ->maxLength(500),
                 ],
-                'visible' => static fn (Withdrawal $record): bool => AdminAccess::current(AdminAccess::MANAGE_PAYOUTS)
+                'visible' => static fn (Withdrawal $record): bool => AdminAccess::permits(AdminPermission::WITHDRAWALS_APPROVE)
                     && app(WithdrawalApprovalService::class)->canApprove($record),
                 'action' => static function (Withdrawal $record, array $data): void {
                     OperatorActionFactory::run(static function () use ($record, $data): void {
@@ -116,7 +117,7 @@ final class WithdrawalDecisionActions
                         ->minLength(5)
                         ->maxLength(500),
                 ],
-                'visible' => static fn (Withdrawal $record): bool => AdminAccess::current(AdminAccess::MANAGE_PAYOUTS)
+                'visible' => static fn (Withdrawal $record): bool => AdminAccess::permits(AdminPermission::WITHDRAWALS_REJECT)
                     && app(WithdrawalApprovalService::class)->canReject($record),
                 'action' => static function (Withdrawal $record, array $data): void {
                     OperatorActionFactory::run(
@@ -137,7 +138,7 @@ final class WithdrawalDecisionActions
                 'confirm' => true,
                 'heading' => 'Start a one-time payout dispatch',
                 'description' => 'This may contact the configured payout provider. The existing dispatch service checks the reservation and records a durable claim. Unknown outcomes keep the hold for reconciliation; do not resend.',
-                'visible' => static fn (Withdrawal $record): bool => AdminAccess::current(AdminAccess::MANAGE_PAYOUTS)
+                'visible' => static fn (Withdrawal $record): bool => AdminAccess::permits(AdminPermission::WITHDRAWALS_REVIEW)
                     && $record->status === WithdrawalStatus::Approved,
                 'action' => static function (Withdrawal $record): void {
                     OperatorActionFactory::run(static function () use ($record): void {
@@ -160,7 +161,7 @@ final class WithdrawalDecisionActions
                 'label' => 'Review payout evidence',
                 'icon' => 'heroicon-o-shield-check',
                 'color' => 'primary',
-                'visible' => static fn (Withdrawal $record): bool => AdminAccess::current(AdminAccess::MANAGE_PAYOUTS)
+                'visible' => static fn (Withdrawal $record): bool => AdminAccess::permits(AdminPermission::WITHDRAWALS_EXECUTE)
                     && in_array($record->status, [WithdrawalStatus::Approved, WithdrawalStatus::Processing], true),
                 'action' => static fn (Withdrawal $record) => redirect()->route('admin.withdrawal-reconciliation.index', [
                     'withdrawal_id' => $record->getKey(),
@@ -171,7 +172,7 @@ final class WithdrawalDecisionActions
                 'label' => 'Review uncertain payout',
                 'icon' => 'heroicon-o-shield-check',
                 'color' => 'warning',
-                'visible' => static fn (Withdrawal $record): bool => AdminAccess::current(AdminAccess::MANAGE_PAYOUTS)
+                'visible' => static fn (Withdrawal $record): bool => AdminAccess::permits(AdminPermission::WITHDRAWALS_EXECUTE)
                     && $record->status === WithdrawalStatus::Processing,
                 'action' => static fn (Withdrawal $record) => redirect()->route('admin.withdrawal-reconciliation.index', [
                     'withdrawal_id' => $record->getKey(),
@@ -192,7 +193,7 @@ final class WithdrawalDecisionActions
                         ->minLength(5)
                         ->maxLength(500),
                 ],
-                'visible' => static fn (Withdrawal $record): bool => AdminAccess::current(AdminAccess::MANAGE_PAYOUTS)
+                'visible' => static fn (Withdrawal $record): bool => AdminAccess::permits(AdminPermission::WITHDRAWALS_REJECT)
                     && $record->status !== WithdrawalStatus::Processing
                     && $record->status->canTransitionTo(WithdrawalStatus::Failed),
                 'action' => static function (Withdrawal $record, array $data): void {

@@ -45,13 +45,14 @@ class ComplianceCase extends Model
         'metadata' => 'array',
     ];
 
+    /** @return BelongsTo<User, $this> */
     public function subject(): BelongsTo
     {
         return $this->belongsTo(User::class, 'subject_user_id');
     }
 
     /**
-     * @return HasMany<ComplianceAction, self>
+     * @return HasMany<ComplianceAction, $this>
      */
     public function actions(): HasMany
     {

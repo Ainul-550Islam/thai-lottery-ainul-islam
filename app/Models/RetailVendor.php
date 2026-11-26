@@ -38,7 +38,7 @@ final class RetailVendor extends Model
     }
 
     /**
-     * @return HasMany<TicketAllocation, self>
+     * @return HasMany<TicketAllocation, $this>
      */
     public function allocations(): HasMany
     {

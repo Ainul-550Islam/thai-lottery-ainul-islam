@@ -23,6 +23,7 @@ final class TotpActionProof extends Model
         ];
     }
 
+    /** @return BelongsTo<TotpCredential, $this> */
     public function credential(): BelongsTo
     {
         return $this->belongsTo(TotpCredential::class, 'totp_credential_id');

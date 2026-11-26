@@ -30,6 +30,7 @@ class ReferralLinkClick extends Model
         ];
     }
 
+    /** @return BelongsTo<Agent, $this> */
     public function agent(): BelongsTo
     {
         return $this->belongsTo(Agent::class, 'agent_id');

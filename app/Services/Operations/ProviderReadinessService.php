@@ -161,6 +161,13 @@ final class ProviderReadinessService
         $undeclared = array_values(array_unique($undeclared));
         $missing = array_values(array_unique($missing));
 
+        // The manual bKash/Nagad rail needs only the receiving number.
+        if (in_array($key, ['payment.bkash', 'payment.nagad'], true)
+            && strtolower(trim((string) config('payment.gateways.'.substr($key, 8).'.mode', 'api'))) === 'manual') {
+            $manualKey = 'payment.gateways.'.substr($key, 8).'.merchant_number';
+            $missing = $this->hasValue(config($manualKey)) ? [] : [$manualKey];
+        }
+
         // A declaration gap wins over every other verdict: the report cannot
         // claim a lane is merely "off" when part of it does not exist.
         if ($undeclared !== []) {
@@ -272,10 +279,16 @@ final class ProviderReadinessService
         $enabled = $gateway === 'thai_bank'
             ? (bool) config('thai_payout.enabled', false)
             : (bool) ($config['enabled'] ?? false);
+        // Operator-verified manual rail: no provider API, no callback trust.
+        $manualWallet = in_array($gateway, ['bkash', 'nagad'], true)
+            && strtolower(trim((string) ($config['mode'] ?? 'api'))) === 'manual';
         $status = match ($gateway) {
             'crypto' => GatewayIntegrationStatus::Unsupported,
             'bank_transfer' => GatewayIntegrationStatus::ConfiguredOnly,
-            'bkash', 'nagad', 'thai_bank' => GatewayIntegrationStatus::PartiallyImplemented,
+            'bkash', 'nagad' => $manualWallet
+                ? GatewayIntegrationStatus::ConfiguredOnly
+                : GatewayIntegrationStatus::PartiallyImplemented,
+            'thai_bank' => GatewayIntegrationStatus::PartiallyImplemented,
             default => GatewayIntegrationStatus::FullyImplemented,
         };
         $issues = [];
@@ -289,9 +302,10 @@ final class ProviderReadinessService
         if ($status === GatewayIntegrationStatus::Unsupported) {
             $issues[] = 'gateway_unsupported';
         }
-        if (in_array($gateway, ['bkash', 'nagad'], true)) {
+        if (in_array($gateway, ['bkash', 'nagad'], true) && ! $manualWallet) {
             // A legacy local HMAC convention is not an authenticated merchant
             // provider contract. Credentials alone cannot establish readiness.
+            // (The manual rail accepts no callback at all, so it has no such gap.)
             $issues[] = $gateway.'_callback_authentication_unverified';
         }
 
@@ -307,13 +321,17 @@ final class ProviderReadinessService
         $siteCurrency = $currency?->value ?? $configuredCurrency;
         $siteCountry = strtoupper(trim((string) config('payment.country', 'TH')));
 
-        foreach (self::REQUIRED[$gateway] ?? [] as $key) {
+        foreach ($manualWallet ? ['merchant_number'] : (self::REQUIRED[$gateway] ?? []) as $key) {
             $value = $config[$key] ?? null;
             if (! is_string($value) || trim($value) === '') {
                 $issues[] = 'missing_'.$key;
             }
         }
-        if (in_array($gateway, ['bkash', 'nagad'], true) && ! $this->httpsUrl((string) ($config['base_url'] ?? ''))) {
+        if ($manualWallet
+            && preg_match('/\A01[3-9][0-9]{8}\z/D', trim((string) ($config['merchant_number'] ?? ''))) !== 1) {
+            $issues[] = 'invalid_merchant_number';
+        }
+        if (in_array($gateway, ['bkash', 'nagad'], true) && ! $manualWallet && ! $this->httpsUrl((string) ($config['base_url'] ?? ''))) {
             $issues[] = 'invalid_base_url';
         }
         if ($gateway === 'bank_transfer' && ($direction === null || $direction === 'deposit')) {

@@ -1,3 +1,4 @@
+import toast from './ui/toast.js';
 /**
  * Lottery Platform Account Verification & Real-Time KYC Portal Runtime Controller
  */
@@ -22,7 +23,7 @@
                 var contact = statusInputContact ? statusInputContact.value.trim() : '';
 
                 if (!ref) {
-                    alert('Please enter your KYC Submission Reference ID (e.g., KYC-88291).');
+                    toast.error('Please enter your KYC Submission Reference ID (e.g., KYC-88291).');
                     return;
                 }
 
@@ -163,7 +164,7 @@
                                 '</div>';
                         }
                     } else {
-                        alert(data.message || 'Submission failed. Please check your details.');
+                        toast.error(data.message || 'Submission failed. Please check your details.');
                     }
                 })
                 .catch(function (err) {
@@ -171,7 +172,7 @@
                         submitBtn.disabled = false;
                         submitBtn.innerHTML = '<i class="fa-solid fa-paper-plane mr-2"></i> Submit Verification Request';
                     }
-                    alert('Submission error. Please verify network connectivity.');
+                    toast.error('Submission error. Please verify network connectivity.');
                 });
             });
         }

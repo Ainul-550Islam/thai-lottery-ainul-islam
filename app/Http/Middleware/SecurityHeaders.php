@@ -60,6 +60,30 @@ final class SecurityHeaders
             $nonce = Vite::cspNonce();
             $csp = $this->policy->csp(is_string($nonce) ? $nonce : null);
 
+
+
+            // Filament admin panel needs Alpine's eval, un-nonced inline styles and the bunny font host.
+
+            if ($request->is('admin', 'admin/*')) {
+
+                $csp = str_replace(["script-src 'self'", " 'nonce-{$nonce}'"], ["script-src 'self' 'unsafe-inline' 'unsafe-eval'", ''], $csp);
+
+                $csp = (string) preg_replace_callback(
+
+                    '/(^|; )style-src ([^;]*)/',
+
+                    static fn (array $m): string => $m[1].'style-src '.preg_replace("/\s*'nonce-[^']*'/", '', $m[2])." 'unsafe-inline' https://fonts.bunny.net",
+
+                    $csp,
+
+                );
+
+                $csp = str_replace("font-src 'self'", "font-src 'self' https://fonts.bunny.net", $csp);
+                $csp = str_replace("img-src 'self'", "img-src 'self' https://ui-avatars.com", $csp);
+
+            }
+
+
             if ($csp !== '') {
                 $response->headers->set($this->policy->cspHeaderName(), $csp);
             }

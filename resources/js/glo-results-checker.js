@@ -1,3 +1,4 @@
+import toast from './ui/toast.js';
 /**
  * Thailand Government Lottery (GLO) Interactive Ticket Checker (JavaScript)
  * Reference: draw_results_checker.png
@@ -71,7 +72,7 @@
         function performCheck() {
             const num = currentInput.trim();
             if (num.length < 2) {
-                alert('Please enter at least 2 to 6 digits to verify.');
+                toast.error('Please enter at least 2 to 6 digits to verify.');
                 return;
             }
 
@@ -119,7 +120,7 @@
                 `;
                 modal.classList.remove('hidden');
             } else {
-                alert(won ? 'WINNER: ' + tier + ' (' + amount + ')' : msg);
+                toast[won ? 'success' : 'info'](won ? 'WINNER: ' + tier + ' (' + amount + ')' : msg);
             }
         }
     }

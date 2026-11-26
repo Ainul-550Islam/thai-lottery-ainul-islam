@@ -38,6 +38,7 @@ class CommissionLedger extends Model
         'calculated_at' => 'datetime',
     ];
 
+    /** @return BelongsTo<Agent, $this> */
     public function agent(): BelongsTo
     {
         return $this->belongsTo(Agent::class, 'agent_id', 'id');

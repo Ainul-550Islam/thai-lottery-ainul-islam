@@ -66,6 +66,8 @@ class SettlementSimulationException extends RuntimeException
 
     public const CODE_RESULT_TAMPERED = 'SETTLEMENT_RESULT_TAMPERED';
 
+    public const CODE_SIMULATION_FORBIDDEN_IN_PRODUCTION = 'SETTLEMENT_SIMULATION_FORBIDDEN_IN_PRODUCTION';
+
     /**
      * @param  array<string, scalar|null>  $context
      */
@@ -76,6 +78,28 @@ class SettlementSimulationException extends RuntimeException
         ?Throwable $previous = null,
     ) {
         parent::__construct($message, 0, $previous);
+    }
+
+    /**
+     * The settlement simulation was asked to run in production.
+     *
+     * It records Won/Lost and moves the draw to the terminal Settled state without
+     * paying anyone, so a draw closed this way is not paid by the real settlement.
+     *
+     * @param  array<string, scalar|null>  $context
+     */
+    public static function forbiddenInProduction(int $drawId, array $context = []): self
+    {
+        return new self(
+            sprintf(
+                'Refused: draw %d was not settled. The settlement simulation never runs in production: '
+                .'it marks bets Won or Lost and closes the draw without paying anyone, and a draw closed '
+                .'this way is not paid by the real settlement.',
+                $drawId,
+            ),
+            self::CODE_SIMULATION_FORBIDDEN_IN_PRODUCTION,
+            $context + ['draw_id' => $drawId],
+        );
     }
 
     /**

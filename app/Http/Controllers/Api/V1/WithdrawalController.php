@@ -99,6 +99,9 @@ final class WithdrawalController
                 idempotencyKey: $idempotencyKey,
                 options: [
                     'payout_details' => $request->destination(),
+                    'member_bank_account_id' => isset($validated['member_bank_account_id'])
+                        ? (int) $validated['member_bank_account_id']
+                        : null,
                     'ip' => $request->ip(),
                 ],
             );
@@ -148,6 +151,7 @@ final class WithdrawalController
                     'net_amount' => (string) $withdrawal->net_amount,
                     'currency' => $withdrawal->currency->value,
                     'method' => $withdrawal->method->value,
+                    'member_bank_account_id' => $withdrawal->member_bank_account_id,
                     'requested_at' => $withdrawal->requested_at?->toIso8601String(),
                 ],
                 'kyc_detained' => $gateRefusal !== null,

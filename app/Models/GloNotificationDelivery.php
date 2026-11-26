@@ -55,21 +55,25 @@ class GloNotificationDelivery extends Model
         ];
     }
 
+    /** @return BelongsTo<Notification, $this> */
     public function notification(): BelongsTo
     {
         return $this->belongsTo(Notification::class, 'notification_id');
     }
 
+    /** @return BelongsTo<User, $this> */
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
     }
 
+    /** @return BelongsTo<Ticket, $this> */
     public function ticket(): BelongsTo
     {
         return $this->belongsTo(Ticket::class, 'ticket_id');
     }
 
+    /** @return BelongsTo<Draw, $this> */
     public function draw(): BelongsTo
     {
         return $this->belongsTo(Draw::class, 'draw_id');

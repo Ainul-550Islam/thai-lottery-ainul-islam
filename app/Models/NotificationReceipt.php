@@ -39,7 +39,7 @@ class NotificationReceipt extends Model
     }
 
     /**
-     * @return BelongsTo<Notification, self>
+     * @return BelongsTo<Notification, $this>
      */
     public function notification(): BelongsTo
     {

@@ -16,29 +16,6 @@
 <div class="vision-page" data-vision-page data-locale="{{ e((string) ($page['locale'] ?? app()->getLocale())) }}">
     <a class="pp-skip-link" href="#vision-main">{{ trans('public_pages.skip_to_content') }}</a>
 
-    <header class="vision-header" role="banner">
-        <div class="vision-shell vision-header__inner">
-            <a class="vision-brand" href="{{ route('home') }}" aria-label="{{ trans('vision_page.brand_aria') }}">
-                <span class="vision-brand__mark" aria-hidden="true"><span>TL</span></span>
-                <span class="vision-brand__name">{{ config('app.name') }} <small>{{ trans('vision_page.brand_subtitle') }}</small></span>
-            </a>
-            <nav class="vision-nav" aria-label="{{ trans('vision_page.nav_aria') }}">
-                <a href="{{ route('home') }}">{{ trans('vision_page.nav_home') }}</a>
-                <a href="{{ route('results.index') }}">{{ trans('vision_page.nav_results') }}</a>
-                <a href="{{ route('about') }}">{{ trans('vision_page.nav_about') }}</a>
-                <a class="is-active" href="{{ route('vision') }}" aria-current="page">{{ trans('vision_page.nav_vision') }}</a>
-                <a href="{{ route('contact') }}">{{ trans('vision_page.nav_contact') }}</a>
-            </nav>
-            <div class="vision-header__actions">
-                @auth
-                    <a class="vision-button vision-button--gold" href="{{ route('player.dashboard') }}">{{ trans('vision_page.nav_dashboard') }}</a>
-                @else
-                    <a class="vision-button vision-button--quiet" href="{{ route('login') }}">{{ trans('vision_page.nav_login') }}</a>
-                    <a class="vision-button vision-button--gold" href="{{ route('register') }}">{{ trans('vision_page.nav_join') }}</a>
-                @endauth
-            </div>
-        </div>
-    </header>
 
     <div id="vision-main" class="vision-shell vision-content" tabindex="-1">
         <section class="vision-hero" aria-labelledby="vision-hero-title">

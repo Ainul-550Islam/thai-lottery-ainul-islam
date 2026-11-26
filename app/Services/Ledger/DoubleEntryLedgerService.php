@@ -7,7 +7,6 @@ namespace App\Services\Ledger;
 use App\Enums\Currency;
 use App\Enums\LedgerAccountType;
 use App\Models\LedgerAccount;
-use App\Models\LedgerEntry;
 use App\Models\LedgerTransaction;
 use App\Services\Finance\Money;
 use Illuminate\Support\Facades\DB;
@@ -102,17 +101,22 @@ class DoubleEntryLedgerService
             );
         }
 
-        // 2. Fetch the unspent chain tip for cryptographic audit chain (clock-independent across UUID PKs)
-        /** @var LedgerTransaction|null $latestTx */
-        $latestTx = LedgerTransaction::query()
-            ->whereNotExists(static function ($query): void {
-                $query->selectRaw('1')
-                    ->from('ledger_transactions as child')
-                    ->whereColumn('child.previous_hash', 'ledger_transactions.hash');
-            })
+        // 2. Serialize every hash-chain append on one durable singleton row.
+        // Locking the row which was the tip when this statement began is not
+        // sufficient under real InnoDB contention: a waiter can retain its old
+        // anti-join result after the first writer commits and attempt the same
+        // previous_hash. The dedicated state row is stable even for an empty
+        // ledger and publishes the new tip in this same transaction.
+        $chainState = DB::table('ledger_chain_state')
+            ->where('id', 1)
             ->lockForUpdate()
             ->first();
-        $previousHash = $latestTx?->hash ?? str_repeat('0', 64);
+        if ($chainState === null) {
+            throw new RuntimeException('Ledger chain state is not initialized. Run all database migrations.');
+        }
+        $previousHash = is_string($chainState->tip_hash) && $chainState->tip_hash !== ''
+            ? $chainState->tip_hash
+            : str_repeat('0', 64);
 
         $txUuid = Str::uuid()->toString();
         $txNumber = 'TX-'.date('YmdHis').'-'.strtoupper(Str::random(8));
@@ -145,6 +149,10 @@ class DoubleEntryLedgerService
             'previous_hash' => $previousHash,
             'hash' => $currentHash,
             'posted_at' => $now,
+        ]);
+        DB::table('ledger_chain_state')->where('id', 1)->update([
+            'tip_hash' => $currentHash,
+            'updated_at' => $now,
         ]);
 
         // 5. Create parent financial_transactions row required by ledger_entries FK

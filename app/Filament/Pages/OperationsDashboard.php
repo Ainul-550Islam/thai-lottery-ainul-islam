@@ -4,10 +4,12 @@ declare(strict_types=1);
 
 namespace App\Filament\Pages;
 
+use App\Filament\Widgets\ComplianceQueueWidget;
 use App\Filament\Widgets\DrawPipelineWidget;
 use App\Filament\Widgets\LedgerBalanceWidget;
 use App\Filament\Widgets\PendingApprovalsWidget;
 use App\Filament\Widgets\PlatformStatsWidget;
+use App\Filament\Widgets\SystemHealthWidget;
 use App\Support\Admin\AdminAccess;
 use Filament\Pages\Dashboard;
 use Filament\Widgets\Widget;
@@ -41,9 +43,14 @@ class OperationsDashboard extends Dashboard
     {
         return [
             PlatformStatsWidget::class,
+            // Compliance queues and system health are separate concerns from "is the
+            // platform alive": each stat inside them is gated on its own permission, so
+            // an operator sees only the queues their role owns.
+            ComplianceQueueWidget::class,
             PendingApprovalsWidget::class,
             DrawPipelineWidget::class,
             LedgerBalanceWidget::class,
+            SystemHealthWidget::class,
         ];
     }
 

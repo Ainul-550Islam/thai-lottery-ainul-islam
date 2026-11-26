@@ -55,10 +55,10 @@
     border-radius: 0.5rem;
     padding: 1rem 1.25rem;
     margin: 0 0 1.5rem;
-    background: rgba(148, 163, 184, 0.12);
+    background: rgba(179, 163, 125, 0.12);
 }
 
-.ct-status--success { color: #047857; }
+.ct-status--success { color: #97690f; }
 .ct-status--info    { color: #1d4ed8; }
 .ct-status--warning { color: #b45309; }
 
@@ -107,7 +107,7 @@
     width: 100%;
     box-sizing: border-box;
     padding: 0.625rem 0.75rem;
-    border: 1px solid #94a3b8;
+    border: 1px solid #b3a37d;
     border-radius: 0.5rem;
     font: inherit;
     line-height: 1.5;
@@ -164,7 +164,7 @@
     padding: 0.75rem 1.5rem;
     border: 0;
     border-radius: 0.5rem;
-    background: #047857;
+    background: #97690f;
     color: #fff;
     font: inherit;
     font-weight: 600;
@@ -189,7 +189,7 @@
 
 .ct-support,
 .ct-links {
-    border: 1px solid rgba(148, 163, 184, 0.4);
+    border: 1px solid rgba(179, 163, 125, 0.4);
     border-radius: 0.75rem;
     padding: 1.25rem;
     margin: 0 0 1.5rem;

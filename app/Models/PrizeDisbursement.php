@@ -64,11 +64,13 @@ class PrizeDisbursement extends Model
         'metadata' => 'array',
     ];
 
+    /** @return BelongsTo<Payout, $this> */
     public function payout(): BelongsTo
     {
         return $this->belongsTo(Payout::class);
     }
 
+    /** @return BelongsTo<PayoutBatch, $this> */
     public function batch(): BelongsTo
     {
         return $this->belongsTo(PayoutBatch::class, 'payout_batch_id');

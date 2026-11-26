@@ -44,7 +44,7 @@ final class InvalidWebhookSignatureTest extends PaymentTestCase
     {
         $payload = ['foo' => 'bar'];
 
-        $response = $this->postJson('/api/v1/payments/webhook/bkash', $payload);
+        $response = $this->postJson('/api/v1/payments/webhook/stripe', $payload);
 
         $response->assertStatus(403);
     }

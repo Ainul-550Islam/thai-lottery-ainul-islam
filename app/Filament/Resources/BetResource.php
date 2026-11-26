@@ -10,6 +10,7 @@ use App\Filament\Resources\BetResource\Pages;
 use App\Models\Bet;
 use App\Models\BetItem;
 use App\Support\Admin\AdminAccess;
+use App\Support\Admin\AdminPermission;
 use App\Support\Admin\AdminFormat;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\TextInput;
@@ -75,13 +76,14 @@ class BetResource extends Resource
      * @var list<string>
      */
     public const READ_PERMISSIONS = [
-        AdminAccess::VIEW_DRAWS,
-        AdminAccess::VIEW_TRANSACTION_HISTORY,
+        AdminPermission::BETS_VIEW,
+        AdminPermission::GAMES_VIEW,
+        AdminPermission::PAYMENTS_VIEW,
     ];
 
     public static function canViewAny(): bool
     {
-        return AdminAccess::currentAny(self::READ_PERMISSIONS);
+        return AdminAccess::permitsAny(self::READ_PERMISSIONS);
     }
 
     public static function canView(Model $record): bool

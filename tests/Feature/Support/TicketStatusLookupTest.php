@@ -35,6 +35,8 @@ final class TicketStatusLookupTest extends TestCase
         parent::setUp();
 
         Cache::flush();
+
+        config()->set('support_tickets.status_lookup_enabled', false);
     }
 
     private function enableLane(): void

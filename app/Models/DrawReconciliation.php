@@ -30,6 +30,7 @@ class DrawReconciliation extends Model
         'metadata' => 'array',
     ];
 
+    /** @return BelongsTo<Draw, $this> */
     public function draw(): BelongsTo
     {
         return $this->belongsTo(Draw::class);

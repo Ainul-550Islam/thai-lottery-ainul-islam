@@ -19,6 +19,9 @@
         <testsuite name="Security">
             <directory>tests/Security</directory>
         </testsuite>
+        <testsuite name="Architecture">
+            <directory>tests/Architecture</directory>
+        </testsuite>
     </testsuites>
     <source>
         <include>
@@ -26,6 +29,12 @@
         </include>
     </source>
     <php>
+        <env name="FINANCE_PLAYER_CURRENCIES" value="THB,USD,BDT" force="true"/>
+        <env name="FINANCE_DEFAULT_CURRENCY" value="THB" force="true"/>
+        <env name="FINANCE_MAX_WITHDRAWAL" value="500000.00" force="true"/>
+        <env name="FINANCE_MIN_WITHDRAWAL" value="100.00" force="true"/>
+        <env name="FINANCE_MAX_DEPOSIT" value="500000.00" force="true"/>
+        <env name="FINANCE_MIN_DEPOSIT" value="50.00" force="true"/>
         <env name="APP_ENV" value="testing"/>
         <env name="CONVERSION_ENABLED" value="true"/>
         <env name="CONVERSION_CASH_TO_WIN_ENABLED" value="true"/>
@@ -50,6 +59,8 @@
         <env name="DB_CONNECTION" value="sqlite"/>
         <!-- Give the disposable SQLite test store a bounded wait for concurrent test writers. -->
         <env name="DB_BUSY_TIMEOUT" value="15000"/>
+        <env name="DB_JOURNAL_MODE" value="MEMORY"/>
+        <env name="DB_SYNCHRONOUS" value="OFF"/>
         <env name="DB_DATABASE" value="database/thai_lottery_test"/>
         <env name="DB_FOREIGN_KEYS" value="true"/>
         <env name="CACHE_STORE" value="array"/>
@@ -100,5 +111,12 @@
             every test that wants an ordered ladder states it explicitly.
         -->
         <env name="GLO_SOURCE_PRIORITY" value=""/>
+        <!-- The deployment .env may run another market; the suite pins its own. -->
+        <env name="APP_COUNTRY" value="TH" force="true"/>
+        <env name="FINANCE_DEFAULT_CURRENCY" value="THB" force="true"/>
+        <env name="FEES_CURRENCY" value="THB" force="true"/>
+        <env name="FINANCE_MIN_WITHDRAWAL" value="100.00" force="true"/>
+        <env name="BKASH_MODE" value="api" force="true"/>
+        <env name="NAGAD_MODE" value="api" force="true"/>
     </php>
 </phpunit>

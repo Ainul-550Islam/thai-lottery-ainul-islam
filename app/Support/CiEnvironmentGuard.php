@@ -40,7 +40,7 @@ final class CiEnvironmentGuard
             }
             $resolvedDirectory = realpath(dirname($expected));
             $resolvedRoot = realpath($repository);
-            if (! is_string($resolvedDirectory) || ! is_string($resolvedRoot) || $resolvedDirectory !== $resolvedRoot.'/database') {
+            if (! is_string($resolvedDirectory) || ! is_string($resolvedRoot) || $resolvedDirectory !== $resolvedRoot.DIRECTORY_SEPARATOR.'database') {
                 $errors[] = 'The CI SQLite directory must be inside the repository.';
             }
         } elseif ($connection === 'mysql') {

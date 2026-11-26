@@ -71,6 +71,10 @@ final class DepositApprovalService
             app(DepositAdmission::class)->lockPlayer($wallet);
             $current = $this->transitions->lockDeposit($deposit);
 
+            if ($reviewerUserId !== null && $reviewerUserId === (int) $current->user_id) {
+                throw \App\Exceptions\FinancialException::withCode('deposit_self_approval_refused', 'A deposit cannot be approved by the player who made it.');
+            }
+
             $this->assertWalletMatches($current, $wallet);
             app(DepositIntegrityGuard::class)->assertTerms($current, $wallet);
             app(\App\Services\Payment\DepositProviderAccountService::class)->assertActive($current);

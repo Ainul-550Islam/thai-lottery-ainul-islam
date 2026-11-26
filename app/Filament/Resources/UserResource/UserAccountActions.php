@@ -11,6 +11,7 @@ use App\Models\AuditLog;
 use App\Models\User;
 use App\Services\Auth\SessionGenerationRevocationService;
 use App\Support\Admin\AdminAccess;
+use App\Support\Admin\AdminPermission;
 use Closure;
 use Filament\Actions as PageActions;
 use Filament\Forms;
@@ -141,7 +142,7 @@ final class UserAccountActions
      */
     public static function canOffer(string $name, User $record): bool
     {
-        if (! AdminAccess::current(AdminAccess::MANAGE_USERS)) {
+        if (! AdminAccess::permitsAny([AdminPermission::USERS_SUSPEND, AdminPermission::USERS_VERIFY])) {
             return false;
         }
 
@@ -185,7 +186,7 @@ final class UserAccountActions
      */
     public static function canRevokeSessions(User $record): bool
     {
-        if (! AdminAccess::current(AdminAccess::MANAGE_USERS)) {
+        if (! AdminAccess::permits(AdminPermission::USERS_SUSPEND)) {
             return false;
         }
 
@@ -444,7 +445,7 @@ final class UserAccountActions
                     'roles' => $record->roles()->pluck('name')->all(),
                 ],
                 'visible' => static function (User $record): bool {
-                    return AdminAccess::current(AdminAccess::MANAGE_USERS);
+                    return AdminAccess::permits(AdminPermission::USERS_UPDATE);
                 },
                 'action' => static function (User $record, array $data): void {
                     self::run(static function () use ($record, $data): void {

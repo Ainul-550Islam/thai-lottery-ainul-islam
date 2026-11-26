@@ -10,6 +10,7 @@ use App\Filament\Resources\NumberLimitResource\Pages;
 use App\Models\NumberLimit;
 use App\Services\Risk\NumberNormalizationService;
 use App\Support\Admin\AdminAccess;
+use App\Support\Admin\AdminPermission;
 use App\Support\Admin\AdminFormat;
 use Filament\Forms;
 use Filament\Forms\Form;
@@ -97,13 +98,13 @@ class NumberLimitResource extends Resource
      * @var list<string>
      */
     public const READ_PERMISSIONS = [
-        AdminAccess::VIEW_RISK_ALERTS,
-        AdminAccess::MANAGE_RISK_LIMITS,
+        AdminPermission::RISK_LIMITS_VIEW,
+        AdminPermission::RISK_LIMITS_MANAGE,
     ];
 
     public static function canViewAny(): bool
     {
-        return AdminAccess::currentAny(self::READ_PERMISSIONS);
+        return AdminAccess::permitsAny(self::READ_PERMISSIONS);
     }
 
     public static function canView(Model $record): bool
@@ -113,12 +114,12 @@ class NumberLimitResource extends Resource
 
     public static function canCreate(): bool
     {
-        return AdminAccess::current(AdminAccess::MANAGE_RISK_LIMITS);
+        return AdminAccess::permits(AdminPermission::RISK_LIMITS_MANAGE);
     }
 
     public static function canEdit(Model $record): bool
     {
-        return AdminAccess::current(AdminAccess::MANAGE_RISK_LIMITS);
+        return AdminAccess::permits(AdminPermission::RISK_LIMITS_MANAGE);
     }
 
     /**
@@ -131,7 +132,7 @@ class NumberLimitResource extends Resource
      */
     public static function canDelete(Model $record): bool
     {
-        if (! AdminAccess::current(AdminAccess::MANAGE_RISK_LIMITS)) {
+        if (! AdminAccess::permits(AdminPermission::RISK_LIMITS_MANAGE)) {
             return false;
         }
 

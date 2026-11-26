@@ -1,0 +1,121 @@
+# =============================================================================
+# Thai Lottery - local DEMO compose (not for production)
+# =============================================================================
+#
+#   docker compose -f docker-compose.demo.yml up --build
+#
+# The first start takes a while (image build, then ~100 migrations). When the
+# log prints the THAI LOTTERY DEMO banner, open http://localhost:8080. The
+# banner also shows the demo admin login; the admin password is generated on
+# first start and kept in the demo storage volume:
+#
+#   docker compose -f docker-compose.demo.yml logs app | grep -A8 "THAI LOTTERY DEMO"
+#
+#   stop:             docker compose -f docker-compose.demo.yml down
+#   stop + wipe data: docker compose -f docker-compose.demo.yml down -v
+#
+# What this is: MySQL + the app image served by `php artisan serve`.
+# What it is NOT: no nginx, no TLS, no Redis, no Horizon, no Reverb, no Rust
+# settlement worker and no scheduler (run.sh ticks the draw lifecycle once a
+# minute instead). Cache and sessions use files, queues run synchronously,
+# broadcasting is off, and REAL MONEY STAYS DISABLED unless you create a
+# `.env.demo` file (copy env.demo.example) that switches it on and supplies
+# the payment-provider credentials. `.env.demo` must never be committed.
+#
+# The port is bound to 127.0.0.1 only. Do not expose this stack to a network.
+# The database password below is a placeholder for a throwaway local database.
+#
+# Optional variables (shell env or a .env file next to this file):
+#   DEMO_PORT=8080            host port
+#   DEMO_DB_PASSWORD=...      database password
+#   DEMO_ADMIN_EMAIL=...      demo admin email   (default demo@example.test)
+#   DEMO_ADMIN_PASSWORD=...   demo admin password (default: generated)
+#   DEMO_BOOTSTRAP=0          skip the one-time seed/draws/admin bootstrap
+#   DEMO_TICK=0               do not advance draw lifecycles automatically
+#   .env.demo                 market, REAL_MONEY_ENABLED, provider credentials
+# =============================================================================
+
+name: thai-lottery-demo
+
+services:
+  db:
+    image: mysql:8.4
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: thai_lottery
+      MYSQL_USER: lottery
+      MYSQL_PASSWORD: "${DEMO_DB_PASSWORD:-demo-only-change-me}"
+      MYSQL_ROOT_PASSWORD: "${DEMO_DB_PASSWORD:-demo-only-change-me}"
+    # Same engine settings the app and its tests expect, sized for a laptop.
+    command: >
+      --innodb-buffer-pool-size=256M
+      --innodb-flush-log-at-trx-commit=1
+      --innodb-lock-wait-timeout=15
+      --transaction-isolation=READ-COMMITTED
+      --group-concat-max-len=1048576
+      --max-connections=100
+    volumes:
+      - demo-db:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 40s
+
+  app:
+    build:
+      context: .
+      dockerfile: docker/php/Dockerfile
+      target: runtime
+      args:
+        PHP_VERSION: "8.4"
+    image: thai-lottery-demo:local
+    restart: "no"
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "127.0.0.1:${DEMO_PORT:-8080}:8000"
+    environment:
+      APP_NAME: "Thai Lottery (demo)"
+      APP_ENV: local
+      APP_DEBUG: "false"
+      APP_URL: "http://localhost:${DEMO_PORT:-8080}"
+      LOG_CHANNEL: stderr
+      DB_CONNECTION: mysql
+      DB_HOST: db
+      DB_PORT: "3306"
+      DB_DATABASE: thai_lottery
+      DB_USERNAME: lottery
+      DB_PASSWORD: "${DEMO_DB_PASSWORD:-demo-only-change-me}"
+      CACHE_STORE: file
+      SESSION_DRIVER: file
+      QUEUE_CONNECTION: sync
+      BROADCAST_CONNECTION: log
+      RISK_MAX_STAKE_PER_NUMBER: "500000.00"
+      PHP_CLI_SERVER_WORKERS: "4"
+      DEMO_PORT: "${DEMO_PORT:-8080}"
+      DEMO_ADMIN_EMAIL: "${DEMO_ADMIN_EMAIL:-demo@example.test}"
+      DEMO_ADMIN_PASSWORD: "${DEMO_ADMIN_PASSWORD:-}"
+      DEMO_BOOTSTRAP: "${DEMO_BOOTSTRAP:-1}"
+      DEMO_TICK: "${DEMO_TICK:-1}"
+    # Optional: market, real-money switch and provider credentials (git-ignored).
+    env_file:
+      - path: .env.demo
+        required: false
+    volumes:
+      - ./docker/demo:/demo:ro
+      - demo-storage:/var/www/html/storage
+    command: ["sh", "/demo/run.sh"]
+    # The image's own healthcheck probes php-fpm, which the demo does not run.
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:8000/api/live >/dev/null 2>&1 || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 900s
+
+volumes:
+  demo-db:
+  demo-storage:

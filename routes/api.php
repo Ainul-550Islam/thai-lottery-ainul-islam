@@ -11,10 +11,26 @@ use App\Http\Controllers\Api\V1\Admin\Security\FraudAlertController;
 use App\Http\Controllers\Api\V1\Admin\Security\MalwareReviewController;
 use App\Http\Controllers\Api\V1\Admin\Security\SecurityOverviewController;
 use App\Http\Controllers\Api\V1\AuthController;
+use App\Http\Controllers\Api\V1\BankAccountController;
+use App\Http\Controllers\Api\V1\CashbackController;
+use App\Http\Controllers\Api\V1\DashboardSummaryController;
+use App\Http\Controllers\Api\V1\LoginHistoryController;
+use App\Http\Controllers\Api\V1\ReferralCenterController;
+use App\Http\Controllers\Api\V1\RewardController;
 use App\Http\Controllers\Api\V1\BetAmendmentController;
 use App\Http\Controllers\Api\V1\BetCancellationController;
 use App\Http\Controllers\Api\V1\BetController;
 use App\Http\Controllers\Api\V1\BetPurchaseController;
+use App\Http\Controllers\Api\V1\BetSlipController;
+use App\Http\Controllers\Api\V1\MyBetsController;
+use App\Http\Controllers\Api\V1\WalletOverviewController;
+use App\Http\Controllers\Api\V1\ProfileOverviewController;
+use App\Http\Controllers\Api\V1\PlayerSecurityOverviewController;
+use App\Http\Controllers\Api\V1\NotificationPreferenceController;
+use App\Http\Controllers\Api\V1\ActivePromotionsController;
+use App\Http\Controllers\Api\V1\ComplianceController;
+use App\Http\Controllers\Api\V1\SupportConversationController;
+use App\Http\Controllers\Api\V1\PlayerHealthController;
 use App\Http\Controllers\Api\V1\BingoLotteryController;
 use App\Http\Controllers\Api\V1\BulkBetController;
 use App\Http\Controllers\Api\V1\DepositController;
@@ -41,6 +57,7 @@ use App\Http\Controllers\Api\V1\WalletController;
 use App\Http\Controllers\Api\V1\WalletConversionController;
 use App\Http\Controllers\Api\V1\WeeklyLotteryController;
 use App\Http\Controllers\Api\V1\WithdrawalController;
+use App\Http\Controllers\Auth\TotpMfaController;
 use App\Http\Controllers\Betting\ThaiLotteryBettingController;
 use App\Http\Controllers\GloResultsPageController;
 use App\Http\Controllers\HealthController;
@@ -128,6 +145,42 @@ Route::get('/live', [HealthController::class, 'live'])->name('api.live');
 Route::get('/v1/health', [HealthController::class, 'health'])->name('api.v1.health');
 Route::get('/v1/ready', [HealthController::class, 'ready'])->name('api.v1.ready');
 Route::get('/v1/live', [HealthController::class, 'live'])->name('api.v1.live');
+
+/*
+|--------------------------------------------------------------------------
+| Batch 3: load-balancer probes — REGISTERED IN routes/web.php, NOT HERE
+|--------------------------------------------------------------------------
+|
+| The Batch 3 contract is a BARE path: GET /health/live and GET /health/ready.
+| Anything in this file inherits the `api` prefix from withRouting(api: ...), so
+| the same routes declared here would answer at /api/health/live instead — a
+| silently wrong URL that a load balancer configured from the spec would never
+| call.
+|
+| They cannot live in routes/web.php under their natural names either:
+| /up/live and /up/ready already register `health.live` and `health.ready`, and
+| Laravel overwrites a duplicate route name rather than complaining, which means
+| url()->route('health.live') would start resolving to the new probes and quietly
+| redirect existing monitoring to a different contract.
+|
+| So: bare paths in web.php, names `probe.live` and `probe.ready`, and this
+| comment stays here as the signpost for the next reader looking for them.
+| Asserted by PlayerRoutesTest::test_the_health_liveness_probe_is_public.
+|
+
+/*
+|--------------------------------------------------------------------------
+| Batch 3: public compliance statements (no auth)
+|--------------------------------------------------------------------------
+|
+| Returns only attestation-backed badges plus the two policy notices. With no
+| attestation rows seeded the `badges` array is empty, which is the honest answer
+| and the reason no licence text is hardcoded in a view.
+|
+*/
+Route::get('/v1/public/compliance-badges', [ComplianceController::class, 'badges'])
+    ->middleware('throttle:api')
+    ->name('api.v1.public.compliance-badges');
 
 /*
 |--------------------------------------------------------------------------
@@ -591,6 +644,49 @@ Route::prefix('v1')
             ->middleware(['throttle:bet', 'adult', 'legal.current'])
             ->name('bets.amend');
 
+        /*
+        |------------------------------------------------------------------
+        | Digit games (Batch 2)
+        |------------------------------------------------------------------
+        |
+        | Registered in the SAME middleware group as the existing bet
+        | routes, so a game bet inherits the identical auth, active-user,
+        | throttle, adult and legal-consent floor as every other purchase.
+        | A new lane with a weaker floor is how a purchase bypass appears.
+        |
+        */
+        Route::get('/games', [\App\Http\Controllers\Api\V1\LotteryGameController::class, 'index'])
+            ->name('games.index');
+        Route::get('/games/{code}', [\App\Http\Controllers\Api\V1\LotteryGameController::class, 'show'])
+            ->where('code', '[a-z0-9_]{1,64}')
+            ->name('games.show');
+        Route::get('/games/{code}/upcoming', [\App\Http\Controllers\Api\V1\LotteryGameController::class, 'upcoming'])
+            ->where('code', '[a-z0-9_]{1,64}')
+            ->name('games.upcoming');
+
+        Route::post('/games/{code}/bets/quote', [\App\Http\Controllers\Api\V1\GameBetController::class, 'quote'])
+            ->where('code', '[a-z0-9_]{1,64}')
+            ->middleware(['throttle:bet'])
+            ->name('games.bets.quote');
+        Route::post('/games/{code}/bets', [\App\Http\Controllers\Api\V1\GameBetController::class, 'store'])
+            ->where('code', '[a-z0-9_]{1,64}')
+            ->middleware(['throttle:bet', 'adult', 'legal.current'])
+            ->name('games.bets.store');
+
+        Route::get('/games/{code}/results/latest', [\App\Http\Controllers\Api\V1\GameResultController::class, 'latest'])
+            ->where('code', '[a-z0-9_]{1,64}')
+            ->name('games.results.latest');
+        Route::get('/games/{code}/results', [\App\Http\Controllers\Api\V1\GameResultController::class, 'history'])
+            ->where('code', '[a-z0-9_]{1,64}')
+            ->name('games.results');
+        // The calendar is its own resource beside the results feed, not a filter of it: it
+        // answers "what is scheduled, and what is still owed a result", which the history
+        // endpoint deliberately cannot (it serves published results only).
+        Route::get('/games/{code}/calendar', [\App\Http\Controllers\Api\V1\GameResultController::class, 'calendar'])
+            ->where('code', '[a-z0-9_]{1,64}')
+            ->name('games.calendar');
+
+
         // Ticket verification (owner-scoped detail) and share links.
         Route::post('/tickets/verify', [TicketVerificationController::class, 'verify'])
             ->name('tickets.verify');
@@ -640,6 +736,44 @@ Route::prefix('v1')
         Route::get('/wallet', [WalletController::class, 'show'])->name('wallet.show');
         Route::get('/wallet/transactions', [WalletController::class, 'transactions'])->name('wallet.transactions');
 
+        // Batch 1 — Player-account self-service endpoints (/api/v1/me/*)
+        // Registered in the SAME middleware group as WalletController:
+        // GET  /me/cashback                              POST /me/cashback/claim
+        // GET  /me/rewards/catalog                       POST /me/rewards/{item}/claim
+        // GET  /me/rewards/history                       GET  /me/vip/progress
+        // GET  /me/security/login-history                GET  /me/security/login-summary
+        // GET/POST /me/bank-accounts  PATCH /me/bank-accounts/{id}/default  DELETE /me/bank-accounts/{id}
+        // GET  /me/referral-center                       POST /me/referral-center/payout-requests
+        // GET  /me/dashboard-summary
+        Route::get('/me/cashback', [CashbackController::class, 'show'])->name('me.cashback.show');
+        Route::post('/me/cashback/claim', [CashbackController::class, 'claim'])->name('me.cashback.claim');
+
+        Route::get('/me/rewards/catalog', [RewardController::class, 'catalog'])->name('me.rewards.catalog');
+        Route::post('/me/rewards/{item}/claim', [RewardController::class, 'claim'])
+            ->where('item', '[A-Za-z0-9_-]{1,64}')
+            ->name('me.rewards.claim');
+        Route::get('/me/rewards/history', [RewardController::class, 'history'])->name('me.rewards.history');
+        Route::get('/me/vip/progress', [RewardController::class, 'vipProgress'])->name('me.vip.progress');
+
+        Route::get('/me/security/login-history', [LoginHistoryController::class, 'index'])->name('me.security.login-history');
+        Route::get('/me/security/login-summary', [LoginHistoryController::class, 'summary'])->name('me.security.login-summary');
+
+        Route::get('/me/bank-accounts', [BankAccountController::class, 'index'])->name('me.bank-accounts.index');
+        Route::post('/me/bank-accounts', [BankAccountController::class, 'store'])->name('me.bank-accounts.store');
+        Route::patch('/me/bank-accounts/{id}/default', [BankAccountController::class, 'setDefault'])
+            ->whereNumber('id')
+            ->name('me.bank-accounts.default');
+        Route::delete('/me/bank-accounts/{id}', [BankAccountController::class, 'destroy'])
+            ->whereNumber('id')
+            ->name('me.bank-accounts.destroy');
+
+        Route::get('/me/referral-center', [ReferralCenterController::class, 'show'])->name('me.referral-center.show');
+        Route::post('/me/referral-center/payout-requests', [ReferralCenterController::class, 'requestPayout'])
+            ->middleware(['throttle:withdrawal', 'adult', 'legal.current'])
+            ->name('me.referral-center.payout-requests.store');
+
+        Route::get('/me/dashboard-summary', [DashboardSummaryController::class, 'show'])->name('me.dashboard.summary');
+
         // Profile and password.
         Route::get('/profile', [ProfileController::class, 'show'])->name('profile.show');
         Route::put('/profile', [ProfileController::class, 'update'])->name('profile.update');
@@ -664,6 +798,26 @@ Route::prefix('v1')
         // Account security lane (batch-15): MFA, sessions, devices, ledger.
         Route::post('/security/mfa/challenge', [SecurityController::class, 'challengeMfa'])->name('security.mfa.challenge');
         Route::post('/security/mfa/verify', [SecurityController::class, 'verifyMfa'])->name('security.mfa.verify');
+        // TOTP authenticator enrollment and step-up (Audit §E5). Backed by TotpMfaEnrollmentService
+        // (pending-enrollment row, replay-protected time steps, single-use recovery codes) and always
+        // scoped to the authenticated user. Per-route limiters because every code endpoint is a
+        // brute-force target. The quarantined legacy verifier is NOT mounted.
+        Route::get('/security/totp', [TotpMfaController::class, 'status'])->name('security.totp.status');
+        Route::post('/security/totp/enroll', [TotpMfaController::class, 'enroll'])
+            ->middleware('throttle:6,1')
+            ->name('security.totp.enroll');
+        Route::post('/security/totp/confirm', [TotpMfaController::class, 'confirm'])
+            ->middleware('throttle:10,1')
+            ->name('security.totp.confirm');
+        Route::post('/security/totp/verify', [TotpMfaController::class, 'verify'])
+            ->middleware('throttle:10,1')
+            ->name('security.totp.verify');
+        Route::post('/security/totp/recovery', [TotpMfaController::class, 'verifyRecoveryCode'])
+            ->middleware('throttle:5,1')
+            ->name('security.totp.recovery');
+        Route::post('/security/totp/disable', [TotpMfaController::class, 'destroy'])
+            ->middleware('throttle:5,1')
+            ->name('security.totp.disable');
         Route::get('/security/sessions', [SecurityController::class, 'sessions'])->name('security.sessions.index');
         Route::delete('/security/sessions/{reference}', [SecurityController::class, 'revokeSession'])->name('security.sessions.revoke');
         Route::post('/security/devices/trust', [SecurityController::class, 'trustDevice'])->name('security.devices.trust');
@@ -675,6 +829,90 @@ Route::prefix('v1')
         Route::get('/notifications/preferences', [NotificationController::class, 'preferences'])->name('notifications.preferences.index');
         Route::put('/notifications/preferences', [NotificationController::class, 'writePreference'])->name('notifications.preferences.write');
         Route::get('/notifications/status/{fingerprint}', [NotificationController::class, 'status'])->name('notifications.status');
+
+        /*
+        |----------------------------------------------------------------------
+        | BATCH 3 — PLAYER EXPERIENCE (additive)
+        |----------------------------------------------------------------------
+        |
+        | Mounted under an explicit /me prefix rather than alongside the existing
+        | /bets, /wallet, /profile and /notifications endpoints. Those endpoints
+        | are live and consumed; changing their shape would be a breaking change,
+        | and shadowing them would make route precedence decide what a client
+        | gets. Both surfaces read the same rows and the same services.
+        |
+        | Every route here is authenticated by this group's 'auth:sanctum' +
+        | 'active' + 'throttle:api', the same middleware as the rest of the batch:
+        | no new auth mechanism, no widened scope.
+        |
+        | READ-ONLY except four: adding/removing/clearing slip items and
+        | confirming. Those write only the draft tables (BetSlipService) and, for
+        | confirm, delegate every money movement to the existing Batch-4.3
+        | purchase pipeline inside one transaction.
+        |
+        */
+
+        // --- Draft bet slip ---------------------------------------------------
+        Route::get('/me/bet-slip', [BetSlipController::class, 'show'])->name('me.bet-slip.show');
+        Route::post('/me/bet-slip/items', [BetSlipController::class, 'addItem'])
+            ->middleware('throttle:bet')
+            ->name('me.bet-slip.items.store');
+        Route::delete('/me/bet-slip/items/{item}', [BetSlipController::class, 'removeItem'])
+            ->whereNumber('item')
+            ->name('me.bet-slip.items.destroy');
+        Route::delete('/me/bet-slip', [BetSlipController::class, 'clear'])->name('me.bet-slip.clear');
+        // Confirm carries the tighter bet limiter and the adult + legal gates: it
+        // is the one route on this surface that can move money.
+        Route::post('/me/bet-slip/confirm', [BetSlipController::class, 'confirm'])
+            ->middleware(['throttle:bet', 'adult', 'legal.current'])
+            ->name('me.bet-slip.confirm');
+
+        // --- My bets ----------------------------------------------------------
+        // 'counts' is declared before '{bet}' so the literal wins the match.
+        Route::get('/me/bets/counts', [MyBetsController::class, 'counts'])->name('me.bets.counts');
+        Route::get('/me/bets', [MyBetsController::class, 'index'])->name('me.bets.index');
+        Route::get('/me/bets/{bet}', [MyBetsController::class, 'show'])
+            ->where('bet', '[A-Za-z0-9-]{1,64}')
+            ->name('me.bets.show');
+
+        // --- Wallet overview + feed (read-only) -------------------------------
+        Route::get('/me/wallet/overview', [WalletOverviewController::class, 'overview'])->name('me.wallet.overview');
+        Route::get('/me/wallet/transactions', [WalletOverviewController::class, 'transactions'])->name('me.wallet.transactions');
+
+        // --- Profile overview (masked) ----------------------------------------
+        Route::get('/me/profile/overview', [ProfileOverviewController::class, 'show'])->name('me.profile.overview');
+
+        // --- Security overview + alerts (read-only) ---------------------------
+        Route::get('/me/security/overview', [PlayerSecurityOverviewController::class, 'overview'])->name('me.security.overview');
+        Route::get('/me/security/alerts', [PlayerSecurityOverviewController::class, 'alerts'])->name('me.security.alerts');
+
+        // --- Notification preferences (category matrix) -----------------------
+        Route::get('/me/notification-preferences', [NotificationPreferenceController::class, 'show'])
+            ->name('me.notification-preferences.show');
+        Route::put('/me/notification-preferences', [NotificationPreferenceController::class, 'update'])
+            ->name('me.notification-preferences.update');
+
+        // --- Support conversations (existing chat stack) ----------------------
+        Route::get('/me/support/conversations', [SupportConversationController::class, 'index'])
+            ->name('me.support.conversations.index');
+        Route::post('/me/support/conversations', [SupportConversationController::class, 'store'])
+            ->name('me.support.conversations.store');
+        Route::get('/me/support/conversations/{id}/messages', [SupportConversationController::class, 'messages'])
+            ->where('id', '[A-Za-z0-9-]{1,64}')
+            ->name('me.support.conversations.messages.index');
+        Route::post('/me/support/conversations/{id}/messages', [SupportConversationController::class, 'sendMessage'])
+            ->where('id', '[A-Za-z0-9-]{1,64}')
+            ->name('me.support.conversations.messages.store');
+        Route::post('/me/support/conversations/{id}/rating', [SupportConversationController::class, 'rate'])
+            ->where('id', '[A-Za-z0-9-]{1,64}')
+            ->name('me.support.conversations.rating');
+
+        // --- Promotions (read-only) -------------------------------------------
+        Route::get('/me/promotions/active', [ActivePromotionsController::class, 'index'])->name('me.promotions.active');
+
+        // --- Responsible gaming summary (read-only; writes stay where they are)
+        Route::get('/me/responsible-gaming/summary', [ComplianceController::class, 'responsibleGamingSummary'])
+            ->name('me.responsible-gaming.summary');
 
         // GLO official reference surface. Read-only: the prize ladder, one draw's
         // recorded official numbers, and the 6-digit ticket checker. A winning
@@ -800,6 +1038,9 @@ Route::prefix('v1/deposits')
         Route::post('/', [DepositController::class, 'store'])
             ->middleware(['throttle:deposit', 'adult', 'legal.current'])
             ->name('store');
+        Route::post('/{deposit}/proof', [DepositController::class, 'submitProof'])
+            ->middleware(['throttle:deposit', 'adult', 'legal.current'])
+            ->name('proof');
         Route::get('/{deposit}', [DepositController::class, 'show'])->name('show');
     });
 

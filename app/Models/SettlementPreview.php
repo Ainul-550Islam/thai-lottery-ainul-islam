@@ -48,6 +48,7 @@ class SettlementPreview extends Model
         ];
     }
 
+    /** @return HasMany<SettlementPreviewBet, $this> */
     public function previewBets(): HasMany
     {
         return $this->hasMany(SettlementPreviewBet::class, 'settlement_preview_id');

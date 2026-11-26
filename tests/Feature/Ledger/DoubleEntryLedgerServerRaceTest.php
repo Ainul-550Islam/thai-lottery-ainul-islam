@@ -125,12 +125,12 @@ PHP;
             self::assertNotSame($ids[0], $ids[1]);
             $parent = (int) $db->selectOne('SELECT CONNECTION_ID() AS id')->id;
             $db->beginTransaction();
-            self::assertNotNull($db->table('ledger_transactions')->where('id', $seed->id)->lockForUpdate()->first());
+            self::assertNotNull($db->table('ledger_chain_state')->where('id', 1)->lockForUpdate()->first());
             file_put_contents($directory.'/go', 'go');
             $deadline = microtime(true) + 12;
             $waiting = 0;
             while ($waiting !== 2 && microtime(true) < $deadline) {
-                $waiting = InnoDbLockWitness::waiting($db, $ids, $parent, 'ledger_transactions');
+                $waiting = InnoDbLockWitness::waiting($db, $ids, $parent, 'ledger_chain_state');
                 if ($waiting !== 2) {
                     usleep(200000);
                 }

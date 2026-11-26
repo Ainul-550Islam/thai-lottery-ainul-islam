@@ -123,9 +123,12 @@ final class KycDocumentService
                 throw KycVerificationException::notFound('document:'.$document->getKey());
             }
 
-            $status = $locked->verification_status instanceof KycDocumentVerificationStatus
-                ? $locked->verification_status
-                : KycDocumentVerificationStatus::tryFrom((string) $locked->verification_status);
+            // MAKER-CHECKER, IN THE LANE ITSELF. The screens already refuse a self-review, but a
+            // rule that lives only in the screens is a rule until the next caller arrives. This is
+            // the authoritative document lane, so the refusal belongs here.
+            $this->assertNotOwnEvidence($locked, $reviewerUserId);
+
+            $status = $locked->verificationState();
 
             if ($status === KycDocumentVerificationStatus::Verified) {
                 return $locked; // replay
@@ -182,9 +185,12 @@ final class KycDocumentService
                 throw KycVerificationException::notFound('document:'.$document->getKey());
             }
 
-            $status = $locked->verification_status instanceof KycDocumentVerificationStatus
-                ? $locked->verification_status
-                : KycDocumentVerificationStatus::tryFrom((string) $locked->verification_status);
+            // MAKER-CHECKER, IN THE LANE ITSELF. The screens already refuse a self-review, but a
+            // rule that lives only in the screens is a rule until the next caller arrives. This is
+            // the authoritative document lane, so the refusal belongs here.
+            $this->assertNotOwnEvidence($locked, $reviewerUserId);
+
+            $status = $locked->verificationState();
 
             if ($status === KycDocumentVerificationStatus::Rejected) {
                 return $locked;
@@ -224,9 +230,7 @@ final class KycDocumentService
                 throw KycVerificationException::notFound('document:'.$document->getKey());
             }
 
-            $status = $locked->verification_status instanceof KycDocumentVerificationStatus
-                ? $locked->verification_status
-                : KycDocumentVerificationStatus::tryFrom((string) $locked->verification_status);
+            $status = $locked->verificationState();
 
             if ($status === KycDocumentVerificationStatus::Expired) {
                 return $locked;
@@ -269,5 +273,17 @@ final class KycDocumentService
         ]);
 
         $log->save();
+    }
+
+    /**
+     * Four-eyes: the account under review may never decide its own evidence.
+     *
+     * @throws KycVerificationException
+     */
+    private function assertNotOwnEvidence(KycDocument $document, int $reviewerUserId): void
+    {
+        if ((int) $document->user_id === $reviewerUserId) {
+            throw KycVerificationException::selfReview($reviewerUserId, (string) ($document->document_fingerprint ?: 'doc:'.$document->getKey()));
+        }
     }
 }

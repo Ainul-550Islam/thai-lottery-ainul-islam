@@ -1,7 +1,7 @@
 /**
  * Lottery Platform Enterprise Home & Landing Page Stylesheet
  * Dark Luxury Gold Theme: #0b0f17, #0f1522, #131b29, #172233, #1f2b3e
- * Glowing Amber: #f59e0b, #d97706, #fbbf24 | Emerald: #10b981 | Rose: #ef4444
+ * Glowing Amber: #f59e0b, #d97706, #fbbf24 | Emerald: #e6ae26 | Rose: #ef4444
  */
 
 :root {
@@ -15,11 +15,11 @@
     --th-gold-main: #f59e0b;
     --th-gold-light: #fbbf24;
     --th-gold-dark: #d97706;
-    --th-green-main: #10b981;
-    --th-green-dark: #059669;
+    --th-green-main: #e6ae26;
+    --th-green-dark: #c78f17;
     --th-red-main: #ef4444;
-    --th-text-main: #f8fafc;
-    --th-text-muted: #94a3b8;
+    --th-text-main: #fbf7ea;
+    --th-text-muted: #b3a37d;
     --th-radius: 1rem;
     --th-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
 }
@@ -97,7 +97,7 @@ body.th-home-body {
     padding: 4rem 0 5rem;
     background:
         radial-gradient(1000px 500px at 50% -10%, rgba(245, 158, 11, 0.15), transparent 70%),
-        radial-gradient(800px 400px at 90% 40%, rgba(16, 185, 129, 0.08), transparent 60%),
+        radial-gradient(800px 400px at 90% 40%, rgba(230, 174, 38, 0.08), transparent 60%),
         linear-gradient(180deg, var(--th-bg-header) 0%, var(--th-bg-page) 100%);
     border-bottom: 1px solid var(--th-border-main);
 }
@@ -259,7 +259,7 @@ body.th-home-body {
     left: 0;
     right: 0;
     height: 4px;
-    background: linear-gradient(90deg, #f59e0b, #10b981, #f59e0b);
+    background: linear-gradient(90deg, #f59e0b, #e6ae26, #f59e0b);
 }
 
 .th-prize-pool-box {
@@ -340,7 +340,7 @@ body.th-home-body {
 }
 
 .th-live-pill.open {
-    background: rgba(16, 185, 129, 0.15);
+    background: rgba(230, 174, 38, 0.15);
     border: 1px solid var(--th-green-main);
     color: var(--th-green-main);
 }
@@ -481,7 +481,7 @@ body.th-home-body {
     width: 44px;
     height: 44px;
     border-radius: 12px;
-    background: rgba(16, 185, 129, 0.12);
+    background: rgba(230, 174, 38, 0.12);
     border: 1px solid var(--th-green-main);
     color: var(--th-green-main);
     display: flex;

@@ -452,9 +452,9 @@ final class DataSubjectRequestActions
 
     private static function canAct(): bool
     {
-        return \App\Support\Admin\AdminAccess::allows(
+        return \App\Support\Admin\AdminAccess::permits(
+            \App\Support\Admin\AdminPermission::PRIVACY_MANAGE,
             self::operator(),
-            \App\Support\Admin\AdminAccess::MANAGE_USERS,
         );
     }
 }

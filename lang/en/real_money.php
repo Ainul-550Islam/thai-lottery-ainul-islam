@@ -21,4 +21,32 @@ return [
         'expired' => 'The licence has expired.',
         'country_not_authorized' => 'Your country is not authorised by the licence.',
     ],
+
+    /*
+     * Technical readiness (RealMoneyTechnicalReadinessService).
+     *
+     * These are operator-facing and console-facing sentences. They name the
+     * operation and the failing checks but never a credential, a key value or a
+     * destination: the messages travel into CI transcripts, deploy logs and
+     * incident tickets.
+     */
+    'technical' => [
+        'assert_failed' => 'The platform is not technically ready to carry a :operation; refusing before any balance is read or written.',
+        'operation_unknown' => 'Unknown money operation [:operation].',
+    ],
+
+    /*
+     * Operation-level controls (MoneyOperationControlService).
+     */
+    'control' => [
+        'operation_unknown' => 'Unknown money operation [:operation].',
+        'master_switch_closed' => 'Real money is closed on this deployment, so a :operation is refused.',
+        'operation_control_closed' => 'The runtime money operation control is closed, so a :operation is refused.',
+        'currency_unsupported' => 'The :operation currency [:currency] is not a supported currency.',
+        'amount_invalid' => 'The :operation amount is not a positive decimal value.',
+        'amount_out_of_bounds' => 'The :operation amount is outside the configured :limit bound of :bound :currency.',
+        'enforced_refusal' => 'The :operation was refused by an enforced control: :checks.',
+        'allowed' => 'The :operation is allowed: every enforced control is satisfied.',
+        'allowed_with_warnings' => 'The :operation is allowed, but :count report-mode control(s) recorded a finding.',
+    ],
 ];

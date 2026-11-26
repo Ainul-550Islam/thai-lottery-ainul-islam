@@ -202,14 +202,8 @@ class WithdrawalDisbursementService
                 }
 
                 if ($current->status === WithdrawalStatus::Pending || $current->status === WithdrawalStatus::UnderReview) {
-                    // If manual approval is required, disallow direct dispatch
-                    if ((bool) config('finance.withdrawal.require_manual_approval', true)) {
-                        throw WithdrawalException::notCompletable($current->id, $current->status);
-                    }
-
-                    // Auto-approve if permitted
-                    $this->approvalService->approve($current);
-                    $current->refresh();
+                    // Admin approval is mandatory; no automatic approval path exists.
+                    throw WithdrawalException::notCompletable($current->id, $current->status);
                 }
 
                 if ($current->status === WithdrawalStatus::Approved) {

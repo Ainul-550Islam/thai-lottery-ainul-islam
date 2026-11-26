@@ -7,19 +7,6 @@
 @section('content')
 <main class="next-shell next-content" id="support-main" tabindex="-1" aria-labelledby="support-title">
     <a class="pp-skip-link" href="#support-main">{{ trans('public_pages.skip_to_content') }}</a>
-    <header class="next-page-header">
-        <div class="next-shell next-page-header__inner">
-            <a class="next-brand" href="{{ route('home') }}" aria-label="{{ trans('support.home_aria') }}">
-                <span class="next-brand__mark">TL</span>
-                <span>{{ config('app.name') }}<small>{{ trans('support.brand_subtitle') }}</small></span>
-            </a>
-            <nav class="next-nav" aria-label="{{ trans('support.primary_nav') }}">
-                <a href="{{ route('player.dashboard') }}">{{ trans('support.nav_dashboard') }}</a>
-                <a class="is-active" href="{{ route('support.index') }}" aria-current="page">{{ trans('support.nav_support') }}</a>
-                <a href="{{ route('contact') }}">{{ trans('support.nav_contact') }}</a>
-            </nav>
-        </div>
-    </header>
 
     <section class="next-hero" aria-labelledby="support-title">
         <div>

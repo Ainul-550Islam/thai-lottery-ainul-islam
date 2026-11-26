@@ -45,6 +45,7 @@ final class PasswordWriteCoverageService
         'app/Services/Auth/AdminPasswordChangeService.php',
         'app/Services/Auth/PasswordResetService.php',
         'app/Services/Auth/RegistrationService.php',
+        'app/Services/Auth/Google/GoogleRegistrationService.php',
     ];
 
     /**
@@ -75,6 +76,11 @@ final class PasswordWriteCoverageService
     public function report(): array
     {
         $base = $this->basePath ?? base_path();
+
+        // Resolve to the same canonical form getRealPath() returns, so that a
+        // Windows short name (AINULI~1) or mixed separators in the base cannot
+        // defeat the prefix strip in relative().
+        $base = realpath($base) ?: $base;
 
         $scanned = 0;
         $sites = [];
@@ -163,6 +169,10 @@ final class PasswordWriteCoverageService
 
     private function relative(string $base, string $path): string
     {
+        // Normalise separators on both sides: on Windows the base and the file
+        // path arrive with backslashes, and the allowlist uses forward slashes.
+        $base = str_replace('\\', '/', $base);
+        $path = str_replace('\\', '/', $path);
         $prefix = rtrim($base, '/').'/';
 
         return str_starts_with($path, $prefix) ? substr($path, strlen($prefix)) : $path;

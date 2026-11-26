@@ -26,11 +26,13 @@ final class StripeDepositFollowup extends Model
         self::deleting(static fn () => throw new \LogicException('Signed inbox models cannot delete custody.'));
     }
 
+    /** @return HasOne<StripeFollowupRouteDecision, $this> */
     public function latestRouting(): HasOne
     {
         return $this->hasOne(StripeFollowupRouteDecision::class, 'inbox_id')->latestOfMany();
     }
 
+    /** @return HasOne<StripeFollowupSweepWork, $this> */
     public function sweepWork(): HasOne
     {
         return $this->hasOne(StripeFollowupSweepWork::class, 'inbox_id');

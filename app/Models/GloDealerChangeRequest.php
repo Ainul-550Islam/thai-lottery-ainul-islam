@@ -61,16 +61,19 @@ class GloDealerChangeRequest extends Model
         ];
     }
 
+    /** @return BelongsTo<GloDealer, $this> */
     public function dealer(): BelongsTo
     {
         return $this->belongsTo(GloDealer::class, 'dealer_id');
     }
 
+    /** @return BelongsTo<User, $this> */
     public function requester(): BelongsTo
     {
         return $this->belongsTo(User::class, 'requested_by');
     }
 
+    /** @return BelongsTo<User, $this> */
     public function reviewer(): BelongsTo
     {
         return $this->belongsTo(User::class, 'reviewed_by');

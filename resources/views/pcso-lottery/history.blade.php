@@ -65,8 +65,6 @@
         <x-pcso-lottery.year-nav :years="$years" :active-year="$active_year" :is-thai="$is_thai" />
     </main>
 </div>
-
-<x-public-page.footer />
 @endsection
 
 @push('scripts')

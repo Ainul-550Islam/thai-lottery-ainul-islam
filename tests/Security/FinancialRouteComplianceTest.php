@@ -82,7 +82,12 @@ final class FinancialRouteComplianceTest extends TestCase
 
             $middleware = $route->middleware();
             $this->assertContains($authentication, $middleware, $name.' must authenticate the document owner.');
-            $this->assertContains('legal.current', $middleware, $name.' must require current Privacy acknowledgement.');
+            if ($name === 'api.v1.kyc.upload') {
+                $this->assertContains('legal.current', $middleware, $name.' must require current Privacy acknowledgement.');
+            } else {
+                // Web verification submit intentionally omits legal.current so members can verify before locale legal docs exist.
+                $this->assertNotContains('legal.current', $middleware, $name.' must remain reachable before locale legal docs are published.');
+            }
             $this->assertContains('throttle:account-verification', $middleware, $name.' must use the dedicated KYC upload limit.');
         }
     }

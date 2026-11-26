@@ -11,6 +11,7 @@ use App\Enums\TransactionType;
 use App\Filament\Resources\FinancialTransactionResource\Pages;
 use App\Models\FinancialTransaction;
 use App\Support\Admin\AdminAccess;
+use App\Support\Admin\AdminPermission;
 use App\Support\Admin\AdminFormat;
 use Filament\Forms\Form;
 use Filament\Infolists;
@@ -64,9 +65,9 @@ class FinancialTransactionResource extends Resource
 
     public static function canViewAny(): bool
     {
-        return AdminAccess::currentAny([
-            AdminAccess::VIEW_TRANSACTION_HISTORY,
-            AdminAccess::VIEW_FINANCIAL_REPORTS,
+        return AdminAccess::permitsAny([
+            AdminPermission::PAYMENTS_VIEW,
+            AdminPermission::LEDGER_VIEW,
         ]);
     }
 

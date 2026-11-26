@@ -1,0 +1,9 @@
+# Keep shell/python/Docker files LF so they run inside Linux containers even when the
+# Windows working tree uses core.autocrlf=true.
+*.sh        text eol=lf
+*.py        text eol=lf
+Dockerfile* text eol=lf
+artisan     text eol=lf
+*.sh text eol=lf
+*.py text eol=lf
+*.yml text eol=lf

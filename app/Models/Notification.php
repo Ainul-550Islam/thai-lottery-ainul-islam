@@ -71,7 +71,7 @@ class Notification extends Model
     }
 
     /**
-     * @return BelongsTo<User, self>
+     * @return BelongsTo<User, $this>
      */
     public function user(): BelongsTo
     {
@@ -79,7 +79,7 @@ class Notification extends Model
     }
 
     /**
-     * @return HasMany<NotificationDeliveryAttempt>
+     * @return HasMany<NotificationDeliveryAttempt, $this>
      */
     public function deliveryAttempts(): HasMany
     {
@@ -87,7 +87,7 @@ class Notification extends Model
     }
 
     /**
-     * @return HasMany<NotificationReceipt>
+     * @return HasMany<NotificationReceipt, $this>
      */
     public function receipts(): HasMany
     {

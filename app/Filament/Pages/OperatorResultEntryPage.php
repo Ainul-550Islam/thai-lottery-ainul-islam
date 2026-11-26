@@ -8,6 +8,7 @@ use App\Models\Support\AbstractLotteryResultVersion;
 use App\Models\User;
 use App\Services\Lottery\OperatorResultEntryService;
 use App\Support\Admin\AdminAccess;
+use App\Support\Admin\AdminPermission;
 use Filament\Notifications\Notification;
 use Filament\Pages\Page;
 use Throwable;
@@ -88,10 +89,10 @@ class OperatorResultEntryPage extends Page
 
     public static function canAccess(): bool
     {
-        return AdminAccess::currentAny([
-            AdminAccess::MANAGE_DRAWS,
-            AdminAccess::PROCESS_DRAWS,
-            AdminAccess::VIEW_DRAWS,
+        return AdminAccess::permitsAny([
+            AdminPermission::GAMES_MANAGE,
+            AdminPermission::GAMES_PUBLISH,
+            AdminPermission::GAMES_VIEW,
         ]);
     }
 
@@ -100,12 +101,12 @@ class OperatorResultEntryPage extends Page
      */
     public function canSubmit(): bool
     {
-        return AdminAccess::current(AdminAccess::MANAGE_DRAWS) && ! AdminAccess::isReadOnly();
+        return AdminAccess::permits(AdminPermission::GAMES_MANAGE) && ! AdminAccess::isReadOnly();
     }
 
     public function canApprove(): bool
     {
-        return AdminAccess::current(AdminAccess::PROCESS_DRAWS) && ! AdminAccess::isReadOnly();
+        return AdminAccess::permits(AdminPermission::GAMES_PUBLISH) && ! AdminAccess::isReadOnly();
     }
 
     /**

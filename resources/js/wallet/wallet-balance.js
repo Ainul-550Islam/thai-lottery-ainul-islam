@@ -2,8 +2,9 @@
  * Header wallet balance pill.
  *
  * WHAT THIS OWNS
- * #live-wallet-pill and #player-balance-display in
- * resources/views/layouts/app.blade.php. This module is loaded on every
+ * #live-wallet-pill and #player-balance-display, rendered by
+ * resources/views/layouts/partials/gold-header.blade.php (the signed-in header on every
+ * page except the dashboard). This module is loaded on every
  * authenticated page, so it is deliberately small and does nothing on pages
  * where the pill is absent (guests, the public site).
  *

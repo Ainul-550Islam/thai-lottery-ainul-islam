@@ -20,7 +20,7 @@ if (getenv('REDIS_SETTLEMENT_PROBE') !== '1' || getenv('APP_ENV') !== 'testing'
     || getenv('DB_DATABASE') !== 'thai_lottery_test' || getenv('DB_URL') || getenv('REDIS_URL')
     || ! in_array(getenv('DB_CONNECTION'), ['mysql', 'mariadb'], true)
     || @filetype((string) getenv('DB_SOCKET')) !== 'socket'
-    || ! is_string($redis) || ! str_starts_with($redis, dirname($root).'/.cache/part25-redis/')
+    || ! is_string($redis) || ! str_starts_with($redis, rtrim(dirname($root), '/').'/.cache/part25-redis/')
     || @filetype($redis) !== 'socket' || getenv('REDIS_PORT') !== '0'
     || ! $input || ! $scratch || ! str_starts_with($input, $scratch.DIRECTORY_SEPARATOR)
     || filesize($input) > 4096 || is_file($root.'/bootstrap/cache/config.php')) {

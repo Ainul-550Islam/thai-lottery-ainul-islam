@@ -9,6 +9,7 @@ use Symfony\Component\Process\Process;
 use Symfony\Component\Yaml\Yaml;
 
 /** Native tests must be provisioned, not skipped or pointed at a fake executable. */
+#[\PHPUnit\Framework\Attributes\RequiresOperatingSystem('Linux|Darwin')]
 final class NativeVerifierBuildContractTest extends TestCase
 {
     public function test_build_gate_is_valid_bash_and_rejects_arguments_before_tool_lookup(): void
@@ -70,10 +71,11 @@ final class NativeVerifierBuildContractTest extends TestCase
                     $native = $index;
                 }
 
-                // Recognise an unfiltered suite with strict failure flags;
+                // Recognise an unfiltered suite: either a bare artisan run with strict
+                // failure flags or the lane runner that now owns the full suite;
                 // the filtered seam suite continues onto another line and
                 // must not be mistaken for this full-suite prerequisite.
-                if (preg_match('/^[ \t]*php[ \t]+artisan[ \t]+test(?:[ \t]+--fail-on-(?:skipped|incomplete|empty-test-suite))*[ \t]*$/m', $step['run'] ?? '') === 1) {
+                if (preg_match('/^[ \t]*(?:php[ \t]+artisan[ \t]+test(?:[ \t]+--fail-on-(?:skipped|incomplete|empty-test-suite))*|python3[ \t]+scripts\/run_php_test_lane\.py[ \t]+--lane[ \t]+(?:sqlite|mysql)[ \t]+--output[ \t]+\S+)[ \t]*$/m', $step['run'] ?? '') === 1) {
                     $fullJobs[] = $name;
                     $this->assertNotNull($rust, $name.' must provision Rust.');
                     $this->assertNotNull($native, $name.' must build the real executable.');

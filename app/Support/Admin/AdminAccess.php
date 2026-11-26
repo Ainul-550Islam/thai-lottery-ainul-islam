@@ -44,9 +44,29 @@ final class AdminAccess
      * 'agent' and 'player' are excluded on purpose: the agent portal is Phase 9 and is
      * not this panel.
      *
+     * The operational roles below ('finance-manager' … 'read-only-analyst') were added
+     * with the granular catalogue so that a KYC officer no longer has to be handed the
+     * 'admin' role — and with it the power to approve withdrawals — in order to review a
+     * passport. A role being listed here is NECESSARY but not sufficient: canAccessPanel()
+     * still requires an active account and the 'view dashboard' permission, which
+     * AdminRbacSeeder grants to every role it creates.
+     *
      * @var list<string>
      */
-    public const PANEL_ROLES = ['super-admin', 'admin', 'auditor'];
+    public const PANEL_ROLES = [
+        'super-admin',
+        'admin',
+        'auditor',
+        'finance-manager',
+        'deposit-manager',
+        'withdrawal-manager',
+        'kyc-officer',
+        'aml-officer',
+        'fraud-analyst',
+        'support-agent',
+        'lottery-manager',
+        'read-only-analyst',
+    ];
 
     // The seeded permission catalogue, as constants so a typo is a fatal error rather
     // than a silently denied (or silently granted) screen.
@@ -243,6 +263,218 @@ final class AdminAccess
     }
 
     /**
+     * Is this operator the super-admin?
+     *
+     * WHY THIS IS A METHOD AND NOT A hasRole() CALL AT THE CALL SITE
+     *
+     * The panel's own hardening suite fails any Filament class that inspects a role
+     * name directly, because that is how a screen ends up with a second, drifting
+     * authorisation rule. Screens that need "am I allowed to do this at all?" ask
+     * here instead.
+     */
+    public static function isSuperAdmin(?User $user = null): bool
+    {
+        $user ??= self::operator();
+
+        return $user instanceof User && $user->hasRole('super-admin');
+    }
+
+    /**
+     * Does this operator hold a GRANULAR administrative permission?
+     *
+     * THE TRANSITION CONTRACT (see config/admin.php)
+     *
+     *   enforce = true                  -> only a granular grant counts.
+     *   enforce = false, fallback = true -> a granular grant OR the coarse phrase the
+     *                                      granular permission replaces.
+     *   enforce = false, fallback = false -> only a granular grant counts.
+     *
+     * The fallback exists because five of the panel's screens still ask the coarse
+     * question; without it, migrating one screen would strip a working role of access
+     * to it. It is a bridge, not a destination, and it is switched off by config rather
+     * than by editing code.
+     */
+    public static function permits(string $granularPermission, ?User $user = null): bool
+    {
+        $user ??= self::operator();
+
+        if (! $user instanceof User) {
+            return false;
+        }
+
+        if (! $user->status->canLogin()) {
+            return false;
+        }
+
+        // THE OPERATOR PRECONDITION
+        //
+        // A granular permission is a PANEL power: it exists to open a screen or a verb on one.
+        // The coarse catalogue it replaces is shared with players ('manage wallet',
+        // 'view transaction history', 'view draws'), so the bridge alone would let a player
+        // who holds those phrases pass a resource's canViewAny() — harmless behind the panel's
+        // entry gate, but a second line of defence is cheaper than trusting one gate forever.
+        //
+        // Being an operator (a panel role, an account that may still sign in, and the
+        // dashboard permission) is therefore necessary for every granular check. It is not
+        // sufficient: the grant still has to be there.
+        if (! self::canAccessPanel($user)) {
+            return false;
+        }
+
+        // A name outside the catalogue can never be granted, so it must never be
+        // honoured — not even for a super-admin, and not even if a stale row carries it.
+        // This check therefore stands BEFORE the bypass: "super-admin may do anything"
+        // must not stretch to "anything, including things that are not powers at all".
+        if (! AdminPermission::exists($granularPermission)) {
+            return false;
+        }
+
+        if ($user->hasRole('super-admin')) {
+            return true;
+        }
+
+        if (self::holdsGranular($user, $granularPermission)) {
+            return true;
+        }
+
+        if (self::granularRbacEnforced()) {
+            return false;
+        }
+
+        if (! self::legacyFallbackEnabled()) {
+            return false;
+        }
+
+        $legacy = AdminPermission::legacyEquivalent($granularPermission);
+
+        return $legacy !== null && self::allows($user, $legacy);
+    }
+
+    /**
+     * Does this operator hold a granular permission, WITHOUT the coarse fallback?
+     *
+     * WHY THIS EXISTS — AND WHY `permits()` MUST NOT BE USED FOR POLICY CHECKS
+     *
+     * The coarse catalogue contains phrases that PLAYERS hold: 'manage wallet',
+     * 'view transaction history', 'view draws', 'view results'. They were written for
+     * player-facing screens, where the screen itself scopes the query to the signed-in
+     * player.
+     *
+     * A model policy has no such scoping: WalletPolicy::viewAny() is a blanket "may list
+     * every wallet". Bridging 'wallet.viewAny' to 'manage wallet' through the legacy
+     * fallback therefore hands every player the right to enumerate the whole wallet table
+     * (proven by PolicyAbilityMapTest::test_a_player_still_holds_no_operator_ability, which
+     * failed exactly that way before this method existed).
+     *
+     * So: screen authorisation may bridge to the coarse vocabulary; record-level policy
+     * authorisation may not. The difference is not stylistic — it is the difference
+     * between "this screen is yours" and "this table is yours".
+     */
+    public static function permitsStrict(string $granularPermission, ?User $user = null): bool
+    {
+        $user ??= self::operator();
+
+        if (! $user instanceof User) {
+            return false;
+        }
+
+        if (! $user->status->canLogin()) {
+            return false;
+        }
+
+        if (! AdminPermission::exists($granularPermission)) {
+            return false;
+        }
+
+        if ($user->hasRole('super-admin')) {
+            return true;
+        }
+
+        return self::holdsGranular($user, $granularPermission);
+    }
+
+    /**
+     * Does this operator hold ANY of the given granular permissions?
+     *
+     * @param  list<string>  $granularPermissions
+     */
+    public static function permitsAny(array $granularPermissions, ?User $user = null): bool
+    {
+        foreach ($granularPermissions as $permission) {
+            if (self::permits($permission, $user)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * May this operator grant this granular permission to somebody else?
+     *
+     * Least privilege has a second half that is easy to forget: an operator must not be
+     * able to hand out a power they do not hold. A KYC officer who may manage roles can
+     * therefore only compose roles out of KYC-shaped permissions, and cannot grant
+     * 'withdrawals.execute' — or escalate themselves — by editing a role they belong to.
+     *
+     * Super-admin is exempt because it already holds everything by definition.
+     */
+    public static function mayGrant(string $granularPermission, ?User $user = null): bool
+    {
+        $user ??= self::operator();
+
+        if (! $user instanceof User) {
+            return false;
+        }
+
+        if (self::isSuperAdmin($user)) {
+            return AdminPermission::exists($granularPermission);
+        }
+
+        return AdminPermission::exists($granularPermission)
+            && self::permits($granularPermission, $user);
+    }
+
+    /**
+     * The granular permissions this operator may hand out, for a checkbox list.
+     *
+     * @return list<string>
+     */
+    public static function grantable(?User $user = null): array
+    {
+        $user ??= self::operator();
+
+        if (! $user instanceof User) {
+            return [];
+        }
+
+        return array_values(array_filter(
+            AdminPermission::all(),
+            static fn (string $permission): bool => self::mayGrant($permission, $user),
+        ));
+    }
+
+    private static function holdsGranular(User $user, string $permission): bool
+    {
+        try {
+            return $user->hasPermissionTo($permission, 'web');
+        } catch (\Spatie\Permission\Exceptions\PermissionDoesNotExist) {
+            // Not seeded yet is not a grant.
+            return false;
+        }
+    }
+
+    public static function granularRbacEnforced(): bool
+    {
+        return (bool) config('admin.granular_rbac.enforce', false);
+    }
+
+    public static function legacyFallbackEnabled(): bool
+    {
+        return (bool) config('admin.granular_rbac.fallback_to_legacy', true);
+    }
+
+    /**
      * The authenticated panel user, or null.
      */
     public static function operator(): ?User
@@ -297,7 +529,10 @@ final class AdminAccess
     public static function audit(): array
     {
         return [
-            'vocabulary' => 'config(permission.permissions)',
+            'vocabulary' => 'config(permission.permissions) + config(admin.permission_groups)',
+            'granular_vocabulary' => AdminPermission::all(),
+            'granular_enforced' => self::granularRbacEnforced(),
+            'granular_legacy_fallback' => self::legacyFallbackEnabled(),
             'grants_permissions' => false,
             'writes_anything' => false,
             'super_admin_bypass' => true,

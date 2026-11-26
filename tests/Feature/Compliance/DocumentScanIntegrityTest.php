@@ -54,6 +54,9 @@ final class DocumentScanIntegrityTest extends TestCase
         $upload = UploadedFile::fake()->createWithContent('id.pdf', self::ORIGINAL);
         $path = $upload->getRealPath();
         $this->assertIsString($path);
+        if (! in_array('unix', stream_get_transports(), true)) {
+            $this->markTestSkipped('unix sockets are unavailable on this PHP build (Windows); runs on Linux CI.');
+        }
         $base = sys_get_temp_dir().'/kyc-scan-'.bin2hex(random_bytes(8));
         $socket = $base.'.sock';
         $transcript = $base.'.json';

@@ -13,14 +13,14 @@
 */
 
 .pd-page {
-    --pd-bg: #0f172a;
-    --pd-surface: #1e293b;
-    --pd-surface-2: #334155;
-    --pd-border: #475569;
-    --pd-text: #e2e8f0;
-    --pd-muted: #94a3b8;
+    --pd-bg: #16110a;
+    --pd-surface: #2b2312;
+    --pd-surface-2: #4a3d1f;
+    --pd-border: #6b5a2e;
+    --pd-text: #e4d9bc;
+    --pd-muted: #b3a37d;
     --pd-accent: #f59e0b;
-    --pd-ok: #10b981;
+    --pd-ok: #e6ae26;
     --pd-warn: #fbbf24;
     --pd-bad: #f87171;
     --pd-radius: 0.75rem;
@@ -195,7 +195,7 @@
 .pd-button--primary {
     background: var(--pd-accent);
     border-color: var(--pd-accent);
-    color: #0f172a;
+    color: #16110a;
 }
 
 .pd-button:focus-visible {
@@ -307,7 +307,7 @@
 
 .pd-badge--winning,
 .pd-badge--paid {
-    background: rgba(16, 185, 129, 0.15);
+    background: rgba(230, 174, 38, 0.15);
     border-color: var(--pd-ok);
     color: var(--pd-ok);
 }
@@ -480,7 +480,7 @@
 
 .pd-matrix-wrap {
     overflow-x: auto;
-    border: 1px solid rgb(148 163 184 / 0.25);
+    border: 1px solid rgb(179 163 125 / 0.25);
     border-radius: 0.5rem;
 }
 
@@ -496,16 +496,16 @@
 .pd-table--matrix .game-rule__mode-label {
     font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
     font-size: 0.75rem;
-    border: 1px solid rgb(148 163 184 / 0.4);
+    border: 1px solid rgb(179 163 125 / 0.4);
     border-radius: 0.25rem;
     padding: 0 0.3rem;
-    color: rgb(148 163 184);
+    color: rgb(179 163 125);
 }
 
 .pd-table--matrix .game-rule__nc {
     font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
     font-size: 0.8125rem;
     letter-spacing: 0.03em;
-    color: rgb(148 163 184);
+    color: rgb(179 163 125);
     opacity: 0.85;
 }

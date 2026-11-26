@@ -1,0 +1,96 @@
+diff --git a/resources/css/public-pages.css b/resources/css/public-pages.css
+index fb980f0..1e81341 100644
+--- a/resources/css/public-pages.css
++++ b/resources/css/public-pages.css
+@@ -394,31 +394,48 @@
+ }
+ 
+ /* Footer */
+-.pp-footer {
++footer.pp-footer {
+     border-top: 1px solid var(--pp-border);
+     background: #090f1c;
+-    padding: 1.75rem 1.25rem 2.25rem;
++    padding: 3.5rem 1.25rem 2rem;
+     margin-top: auto;
+ }
+ 
+-.pp-footer__inner {
+-    max-width: 56rem;
++footer.pp-footer .pp-footer__inner {
++    max-width: 80rem;
+     margin: 0 auto;
+ }
+ 
+-.pp-footer__nav {
+-    display: flex;
+-    flex-wrap: wrap;
+-    gap: 0.65rem 1.1rem;
+-    margin-bottom: 1rem;
++/* One row on desktop (brand + three link columns), two columns on tablet, one on phones. */
++footer.pp-footer .pp-footer__nav {
++    display: grid;
++    grid-template-columns: 1fr;
++    gap: 2.5rem 2rem;
++    margin-bottom: 0;
++}
++
++@media (min-width: 640px) {
++    footer.pp-footer .pp-footer__nav {
++        grid-template-columns: repeat(2, minmax(0, 1fr));
++    }
++}
++
++@media (min-width: 1024px) {
++    footer.pp-footer .pp-footer__nav {
++        grid-template-columns: minmax(0, 1.4fr) repeat(3, minmax(0, 1fr));
++        gap: 2.5rem 3rem;
++    }
+ }
+ 
+ .pp-footer__nav a {
+-    font-size: 0.9rem;
+-    font-weight: 600;
+     text-decoration: none;
+ }
+ 
++.pp-footer__nav ul a {
++    font-size: 0.875rem;
++    font-weight: 500;
++}
++
+ .pp-footer__legal {
+     margin: 0;
+     font-size: 0.825rem;
+diff --git a/resources/views/layouts/app.blade.php b/resources/views/layouts/app.blade.php
+index 090adc0..20c701e 100644
+--- a/resources/views/layouts/app.blade.php
++++ b/resources/views/layouts/app.blade.php
+@@ -196,8 +196,25 @@
+         @yield('content')
+     </main>
+ 
+-    <!-- Global Platform Footer -->
+-    <x-public-page.footer />
++    {{--
++        The shared public footer (lanes, information, legal links) belongs to the landing
++        page and the public pages. Routes behind the `auth` middleware are the signed-in
++        member area (dashboard, wallet, bets, profile) and keep their own navigation only.
++
++        The decision comes from the matched route, never from the viewer, so a publicly
++        cached page renders the same footer for every visitor.
++    --}}
++    @php
++        $inMemberArea = collect(request()->route()?->gatherMiddleware() ?? [])
++            ->contains(static fn ($middleware): bool => is_string($middleware)
++                && ($middleware === 'auth'
++                    || str_starts_with($middleware, 'auth:')
++                    || str_starts_with($middleware, \Illuminate\Auth\Middleware\Authenticate::class)));
++    @endphp
++    @unless ($inMemberArea)
++        <!-- Global Platform Footer -->
++        <x-public-page.footer />
++    @endunless
+ 
+     <!-- Core Scripts -->
+     @stack('scripts')

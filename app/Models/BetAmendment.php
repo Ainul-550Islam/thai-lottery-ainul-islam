@@ -94,7 +94,7 @@ class BetAmendment extends Model
     }
 
     /**
-     * @return BelongsTo<User, self>
+     * @return BelongsTo<User, $this>
      */
     public function user(): BelongsTo
     {
@@ -104,7 +104,7 @@ class BetAmendment extends Model
     /**
      * The original bet this amendment replaced.
      *
-     * @return BelongsTo<Bet, self>
+     * @return BelongsTo<Bet, $this>
      */
     public function bet(): BelongsTo
     {
@@ -114,7 +114,7 @@ class BetAmendment extends Model
     /**
      * The bet created in place of the original, when the amendment applied.
      *
-     * @return BelongsTo<Bet, self>
+     * @return BelongsTo<Bet, $this>
      */
     public function replacementBet(): BelongsTo
     {

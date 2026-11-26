@@ -32,16 +32,19 @@ class PrizeMatch extends Model
         'metadata' => 'array',
     ];
 
+    /** @return BelongsTo<Draw, $this> */
     public function draw(): BelongsTo
     {
         return $this->belongsTo(Draw::class);
     }
 
+    /** @return BelongsTo<Bet, $this> */
     public function bet(): BelongsTo
     {
         return $this->belongsTo(Bet::class);
     }
 
+    /** @return BelongsTo<Ticket, $this> */
     public function ticket(): BelongsTo
     {
         return $this->belongsTo(Ticket::class);

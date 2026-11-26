@@ -141,10 +141,10 @@ enum PrivacyRequestStatus: string
      */
     public static function values(): array
     {
-        return array_values(array_map(
+        return array_map(
             static fn (self $status): string => $status->value,
             self::cases(),
-        ));
+        );
     }
 
     /**
@@ -154,9 +154,9 @@ enum PrivacyRequestStatus: string
      */
     public function transitionValues(): array
     {
-        return array_values(array_map(
+        return array_map(
             static fn (self $status): string => $status->value,
             $this->allowedTransitions(),
-        ));
+        );
     }
 }

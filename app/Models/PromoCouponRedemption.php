@@ -35,16 +35,19 @@ class PromoCouponRedemption extends Model
         ];
     }
 
+    /** @return BelongsTo<PromoCoupon, $this> */
     public function coupon(): BelongsTo
     {
         return $this->belongsTo(PromoCoupon::class, 'coupon_id');
     }
 
+    /** @return BelongsTo<User, $this> */
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class, 'user_id');
     }
 
+    /** @return BelongsTo<Wallet, $this> */
     public function wallet(): BelongsTo
     {
         return $this->belongsTo(Wallet::class, 'wallet_id');

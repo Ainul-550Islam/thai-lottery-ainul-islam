@@ -31,13 +31,13 @@ class TruemoneyVoucherRedemption extends Model
         ];
     }
 
-    /** @return BelongsTo<User, self> */
+    /** @return BelongsTo<User, $this> */
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
     }
 
-    /** @return BelongsTo<Deposit, self> */
+    /** @return BelongsTo<Deposit, $this> */
     public function deposit(): BelongsTo
     {
         return $this->belongsTo(Deposit::class);

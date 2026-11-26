@@ -16,6 +16,7 @@ use App\Enums\RiskLevel;
 use App\Enums\TicketStatus;
 use App\Enums\WalletType;
 use App\Exceptions\BetAlreadySettledException;
+use App\Events\BetCancelled;
 use App\Exceptions\BetCancellationException;
 use App\Exceptions\BetCancellationWindowExpiredException;
 use App\Models\AgentCommission;
@@ -169,6 +170,16 @@ class BetCancellationService
             if (! $route) {
                 $this->proof->refuse();
             }
+            // One global lock order: the paying member wallet and every agent wallet
+            // named by this bet's commission payout receipts are locked together in
+            // ascending id order. Taking the member wallet first and the agent wallets
+            // later would invert the order used by commission settlement and deadlock.
+            $payoutWalletIds = DB::table('agent_commission_payouts')
+                ->whereIn('commission_id', DB::table('agent_commissions')->where('bet_id', (int) $bet->getKey())->select('id'))
+                ->pluck('wallet_id')
+                ->map(static fn ($id): int => (int) $id)
+                ->all();
+            app(WalletLockService::class)->lockMany([(int) $route->wallet_id, ...$payoutWalletIds]);
             $wallet = app(WalletLockService::class)->lockForCredit((int) $route->wallet_id);
             // Draw coordinators already hold this lock; player cancellation
             // takes it before the bet so closing/cancelling the draw cannot
@@ -279,6 +290,32 @@ class BetCancellationService
         }, 3);
 
         /** @var BetCancellationResult $result */
+        // A COMMITTED CANCELLATION IS ANNOUNCED, ONCE.
+        //
+        // Batch 2's digit-game lane listens for this to give back the liability it
+        // reserved when the slip was sold, and (where a cashback lane is installed) to ask
+        // for the accrual the bet earned to be reversed. Without this dispatch a cancelled
+        // digit bet would keep its potential payout reserved against the operator's cap for
+        // ever, and the cashback a player no longer deserves would stand.
+        //
+        // WHY HERE AND NOT INSIDE THE TRANSACTION
+        // The listener must never be able to prevent a refund that already succeeded, and
+        // must never fire for a cancellation that rolled back. Both are satisfied by
+        // announcing AFTER the work is committed: a listener that throws cannot undo the
+        // player's money (and the lane's listeners log rather than throw for that reason),
+        // and nothing observes a cancellation that did not happen. A caller that wraps this
+        // in an outer transaction still gets correct behaviour: the listeners write through
+        // the same connection and roll back with it.
+        //
+        // REPLAYS NEVER REACH THIS LINE. An already-cancelled bet returns at the top of
+        // cancel(), and a racing second cancellation that discovers the committed
+        // cancellation inside the transaction returns from the closure - so a retried
+        // request cannot release the same reservation twice or reverse a cashback that is
+        // already reversed.
+        if ($result !== null) {
+            BetCancelled::dispatch($result->bet, $result->reason->value);
+        }
+
         return $result;
     }
 
@@ -699,6 +736,14 @@ class BetCancellationService
         // cancellation over an open - or a corrupt - agent book. This runs on the
         // replay path too, not only for a coordinator: an ordinary repeated cancel()
         // must prove the same closure as the draw-level coordinator.
+        // The route row read above had no lock and, after an older repeatable-read
+        // snapshot, can predate a cancellation that committed while this caller waited.
+        // Re-read it with a current (locking) read so the commission recovery proof
+        // compares against the committed row, not the stale one.
+        $route = DB::table('bet_purchase_ownerships')->where('bet_id', (int) $bet->getKey())->lockForUpdate()->first();
+        if (! $route) {
+            $this->proof->refuse();
+        }
         if ($route->commission_snapshot_hash !== null) {
             app(BetCommissionCancellation::class)->assertRecoveryClosed($bet, $route);
         }

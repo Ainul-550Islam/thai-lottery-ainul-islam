@@ -14,11 +14,13 @@
     "require": {
         "php": "^8.4",
         "filament/filament": "^3.3",
+        "google/auth": "^1.55",
         "guzzlehttp/guzzle": "^7.8",
         "laravel/framework": "^12.0",
         "laravel/sanctum": "^4.0",
         "laravel/tinker": "^2.9",
         "mpdf/mpdf": "^8.2",
+        "phpseclib/phpseclib": "^3.0",
         "psr/clock": "^1.0",
         "spatie/laravel-permission": "^6.4",
         "spomky-labs/otphp": "^11.5",
@@ -31,7 +33,8 @@
         "laravel/sail": "^1.26",
         "mockery/mockery": "^1.6",
         "nunomaduro/collision": "^8.1",
-        "phpunit/phpunit": "^11.0"
+        "phpunit/phpunit": "^11.0",
+        "symfony/yaml": "^7.4.23"
     },
     "autoload": {
         "psr-4": {

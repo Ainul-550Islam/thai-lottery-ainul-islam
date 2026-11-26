@@ -92,7 +92,7 @@ class LedgerEntry extends Model
     }
 
     /**
-     * @return BelongsTo<LedgerAccount, self>
+     * @return BelongsTo<LedgerAccount, $this>
      */
     public function ledgerAccount(): BelongsTo
     {
@@ -100,7 +100,7 @@ class LedgerEntry extends Model
     }
 
     /**
-     * @return BelongsTo<FinancialTransaction, self>
+     * @return BelongsTo<FinancialTransaction, $this>
      */
     public function financialTransaction(): BelongsTo
     {
@@ -114,7 +114,7 @@ class LedgerEntry extends Model
     }
 
     /**
-     * @return BelongsTo<Wallet, self>
+     * @return BelongsTo<Wallet, $this>
      */
     public function wallet(): BelongsTo
     {
@@ -124,7 +124,7 @@ class LedgerEntry extends Model
     /**
      * The domain object that caused this entry (bet, payout, deposit, ...).
      *
-     * @return MorphTo<Model, self>
+     * @return MorphTo<Model, $this>
      */
     public function reference(): MorphTo
     {

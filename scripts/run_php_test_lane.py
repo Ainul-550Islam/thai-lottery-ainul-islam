@@ -68,14 +68,14 @@ def method_counter(ids: list[str]) -> Counter[str]:
 
 
 def build_plan(root: Path, discovery: Path) -> dict:
-    native = {str(e.text) for e in ET.parse(root / 'phpunit.mysql.xml').findall('.//testsuite/file')}
+    native = {str(e.text).replace(chr(92), '/') for e in ET.parse(root / 'phpunit.mysql.xml').findall('.//testsuite/file')}
     native.update(NATIVE_ADDITIONS)
     files = defaultdict(lambda: defaultdict(list))
     lanes = defaultdict(list)
     classes = set()
     matched = set()
     for cl in ET.parse(discovery).findall('.//p:tests/p:testClass', NAMESPACE):
-        path = str(Path(cl.attrib['file']).resolve().relative_to(root))
+        path = str(Path(cl.attrib['file']).resolve().relative_to(root)).replace(chr(92), '/')
         classes.add(path)
         cls = cl.attrib['name'].split('\\')[-1]
         suffix = path.endswith(('ServerTest.php', 'ServerRaceTest.php'))

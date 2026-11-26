@@ -12,7 +12,7 @@
     --wl-ink: #0b0904;
     --wl-panel: rgba(20, 16, 7, 0.84);
     --wl-line: rgba(212, 175, 55, 0.24);
-    color: #f8fafc;
+    color: #fbf7ea;
     min-height: 30rem;
 }
 
@@ -25,8 +25,8 @@
     border-radius: 1.75rem;
     background:
         radial-gradient(circle at 10% 0%, rgba(212, 175, 55, 0.12), transparent 32%),
-        radial-gradient(circle at 90% 15%, rgba(16, 185, 129, 0.07), transparent 28%),
-        linear-gradient(145deg, rgba(15, 23, 42, 0.96), rgba(11, 9, 4, 0.98));
+        radial-gradient(circle at 90% 15%, rgba(230, 174, 38, 0.07), transparent 28%),
+        linear-gradient(145deg, rgba(22, 17, 10, 0.96), rgba(11, 9, 4, 0.98));
     box-shadow: 0 1.5rem 4rem rgba(0, 0, 0, 0.26), inset 0 1px 0 rgba(255, 255, 255, 0.05);
 }
 
@@ -111,13 +111,13 @@
 .wl-disclaimer {
     max-width: 54rem;
     margin: 1rem auto 0;
-    color: #cbd5e1;
+    color: #cbbd98;
     font-size: 0.96rem;
     line-height: 1.75;
 }
 
 .wl-disclaimer {
-    color: #94a3b8;
+    color: #b3a37d;
     font-size: 0.82rem;
 }
 
@@ -220,7 +220,7 @@
 .mega-hero__copy p:last-child {
     max-width: 42rem;
     margin: 0.8rem 0 0;
-    color: #cbd5e1;
+    color: #cbbd98;
     line-height: 1.75;
 }
 
@@ -301,7 +301,7 @@
 }
 
 .wl-card__date-main {
-    color: #e2e8f0;
+    color: #e4d9bc;
     font-size: 1.05rem;
     font-weight: 800;
 }
@@ -309,7 +309,7 @@
 .wl-card__date-iso,
 .wl-card__date-be {
     margin-top: 0.3rem;
-    color: #94a3b8;
+    color: #b3a37d;
     font-size: 0.78rem;
 }
 
@@ -377,7 +377,7 @@
 }
 
 .wl-card__unavailable-text {
-    color: #cbd5e1;
+    color: #cbbd98;
     font-size: 0.86rem;
     line-height: 1.6;
 }
@@ -393,12 +393,12 @@
     padding: 0.85rem;
     border: 1px solid rgba(212, 175, 55, 0.14);
     border-radius: 0.85rem;
-    background: rgba(15, 23, 42, 0.28);
+    background: rgba(22, 17, 10, 0.28);
 }
 
 .wl-detail__dates dt,
 .wl-source__term {
-    color: #94a3b8;
+    color: #b3a37d;
     font-size: 0.72rem;
     font-weight: 750;
     text-transform: uppercase;
@@ -406,7 +406,7 @@
 
 .wl-detail__dates dd {
     margin: 0.3rem 0 0;
-    color: #f8fafc;
+    color: #fbf7ea;
     font-weight: 750;
 }
 
@@ -450,17 +450,17 @@
 }
 
 .wl-table tbody th {
-    color: #f8fafc;
+    color: #fbf7ea;
 }
 
 .wl-table tbody td {
-    color: #cbd5e1;
+    color: #cbbd98;
 }
 
 .wl-table__date-alt {
     display: block;
     margin-top: 0.2rem;
-    color: #64748b;
+    color: #968967;
     font-size: 0.72rem;
 }
 
@@ -475,16 +475,16 @@
     gap: 0.45rem;
     width: fit-content;
     padding: 0.35rem 0.55rem;
-    border: 1px solid rgba(148, 163, 184, 0.28);
+    border: 1px solid rgba(179, 163, 125, 0.28);
     border-radius: 999px;
-    color: #cbd5e1;
+    color: #cbbd98;
     font-size: 0.72rem;
     font-weight: 750;
 }
 
 .wl-source--official .wl-source__badge {
-    border-color: rgba(52, 211, 153, 0.35);
-    color: #a7f3d0;
+    border-color: rgba(246, 199, 68, 0.35);
+    color: #fce48a;
 }
 
 .wl-source--fixture .wl-source__badge,
@@ -504,7 +504,7 @@
 .wl-source__hint,
 .wl-source__explainer {
     margin: 0;
-    color: #94a3b8;
+    color: #b3a37d;
     font-size: 0.82rem;
     line-height: 1.65;
 }
@@ -520,13 +520,13 @@
     padding: 0.75rem;
     border: 1px solid rgba(212, 175, 55, 0.12);
     border-radius: 0.75rem;
-    background: rgba(15, 23, 42, 0.25);
+    background: rgba(22, 17, 10, 0.25);
 }
 
 .wl-source__value {
     margin: 0.3rem 0 0;
     overflow-wrap: anywhere;
-    color: #e2e8f0;
+    color: #e4d9bc;
     font-size: 0.78rem;
 }
 
@@ -564,7 +564,7 @@
     border: 1px solid rgba(212, 175, 55, 0.2);
     border-radius: 0.8rem;
     background: rgba(212, 175, 55, 0.05);
-    color: #e2e8f0;
+    color: #e4d9bc;
     text-decoration: none;
 }
 
@@ -581,12 +581,12 @@
 
 .wl-years__count,
 .wl-years__alt {
-    color: #94a3b8;
+    color: #b3a37d;
     font-size: 0.72rem;
 }
 
 .wl-years__empty {
-    color: #94a3b8;
+    color: #b3a37d;
 }
 
 .wl-pagination {
@@ -596,12 +596,12 @@
     justify-content: center;
     gap: 1rem;
     margin-top: 1rem;
-    color: #cbd5e1;
+    color: #cbbd98;
     font-size: 0.86rem;
 }
 
 .wl-pagination__status {
-    color: #94a3b8;
+    color: #b3a37d;
 }
 
 @media (max-width: 640px) {

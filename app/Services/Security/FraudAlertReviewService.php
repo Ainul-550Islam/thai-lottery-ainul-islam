@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services\Security;
 
+use App\Enums\AuditAction;
 use App\Models\FraudAlert;
 use App\Models\FraudCase;
 use App\Services\Audit\AuditLogService;
@@ -68,7 +69,11 @@ class FraudAlertReviewService
             // audit trail can be retained without retaining the identifiers themselves.
             $this->audit->log(
                 userId: (int) $reviewerId,
-                action: 'fraud_alert_reviewed',
+                // A dedicated action, not the generic string this used to pass. `audit_logs.action`
+                // is cast to App\Enums\AuditAction, so an unknown string silently collapsed to
+                // `update`, and the fraud lane's decisions were indistinguishable from an ordinary
+                // edit in the audit screen's filters. The case now exists.
+                action: AuditAction::FraudAlertReviewed,
                 riskLevel: 'high',
                 // audit_logs uses numeric morph IDs; this alert has a UUID.
                 // Preserve its real identity in metadata instead of casting it
@@ -95,7 +100,10 @@ class FraudAlertReviewService
                 'decided_at' => now(),
             ]);
 
-            return $alert->fresh();
+            // `fresh()` is nullable by signature; the row we just updated inside this transaction
+            // is the same row, so falling back to it keeps the return type honest without
+            // pretending a null is impossible.
+            return $alert->fresh() ?? $alert;
         });
     }
 }

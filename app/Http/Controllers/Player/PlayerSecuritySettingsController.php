@@ -14,6 +14,7 @@ use App\Models\SecuritySession;
 use App\Services\Account\AccountVerificationService;
 use App\Services\Compliance\SelfExclusionService;
 use App\Services\Security\ResponsibleGamingService;
+use App\Support\ResponsibleGaming\SelfExclusionDuration;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -169,15 +170,12 @@ final class PlayerSecuritySettingsController extends Controller
         }
 
         $validated = $request->validate([
-            'duration' => ['required', 'string', Rule::in(['24h', '7d', '30d', '90d', '365d'])],
+            'duration' => ['required', 'string', Rule::in(SelfExclusionDuration::keys())],
         ]);
 
-        // Derive the horizon from the validated key rather than restating it.
-        // The key already carries the number, so a lookup table duplicated it
-        // and allowed the two to disagree. '24h' is the one horizon shorter
-        // than a day and resolves to a single day of exclusion.
-        $duration = (string) $validated['duration'];
-        $days = $duration === '24h' ? 1 : (int) rtrim($duration, 'd');
+        // Horizons live in SelfExclusionDuration, shared with the settings
+        // portal endpoint, so the two can never disagree.
+        $days = SelfExclusionDuration::days((string) $validated['duration']);
         $requestData = SelfExclusionData::fromInput([
             'user_id' => (int) $user->id,
             'effective_at' => now(),

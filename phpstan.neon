@@ -1,5 +1,9 @@
 includes:
     - vendor/larastan/larastan/extension.neon
+    # The debt this codebase already carried when the analyser was first made to run. A baseline
+    # entry is a (file, line, message) triple: fixing the code makes it unmatched, and any NEW
+    # error — in this code or in code that moved — fails the run. It is a ratchet, not a muzzle.
+    - phpstan-baseline.neon
 
 parameters:
     paths:
@@ -14,7 +18,8 @@ parameters:
     ignoreErrors:
         - '#PHPDoc tag @var#'
 
-    checkMissingIterableValueType: true
-    checkGenericClassInNonGenericObjectType: false
-    checkExplicitMixed: true
+    # PHPStan 2.x removed `checkMissingIterableValueType`, `checkGenericClassInNonGenericObjectType`
+    # and `checkExplicitMixed` as parameters — the strictness they toggled is now baked into the
+    # levels, and leaving them here made the whole configuration invalid (the analyser refused to
+    # start at all, which is why this lane had never produced a number).
     reportUnmatchedIgnoredErrors: false

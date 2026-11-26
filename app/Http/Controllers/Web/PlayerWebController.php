@@ -14,6 +14,7 @@ use App\Exceptions\FinancialException;
 use App\Exceptions\InsufficientBalanceException;
 use App\Exceptions\WithdrawalException;
 use App\Exceptions\WithdrawalKycException;
+use App\Http\Requests\Payment\SubmitManualDepositProofRequest;
 use App\Http\Requests\Web\DepositRequest;
 use App\Http\Requests\Web\UpdateResponsibleGamingLimitsRequest;
 use App\Http\Requests\Web\WithdrawalRequest;
@@ -148,49 +149,111 @@ final class PlayerWebController
         /** @var User $user */
         $user = Auth::user();
 
-        $wallet = Wallet::query()
-            ->where('user_id', $user->id)
-            ->first();
+        $wallet = Wallet::query()->where('user_id', $user->id)->first();
+        $currency = $wallet?->currency instanceof Currency ? $wallet->currency : null;
 
-        $openDraw = Draw::query()
-            ->where('status', DrawStatus::Open)
-            ->with(['result.winningNumbers', 'winningNumbers'])
-            ->first();
+        $openDraw = Draw::query()->where('status', DrawStatus::Open)->first();
 
-        $upcomingDraw = $openDraw ?? Draw::query()
-            ->where('status', DrawStatus::Scheduled)
+        $upcomingDraws = Draw::query()
+            ->whereIn('status', [DrawStatus::Open, DrawStatus::Scheduled])
             ->where('scheduled_at', '>=', now())
             ->orderBy('scheduled_at')
-            ->first();
-
-        $recentBets = Bet::query()
-            ->where('user_id', $user->id)
-            ->with(['draw', 'items'])
-            ->latest('id')
-            ->take(5)
+            ->take(4)
             ->get();
 
-        $latestCompletedDraw = Draw::query()
+        $liveDraw = $openDraw ?? $upcomingDraws->first();
+
+        $latest = Draw::query()
             ->whereIn('status', [DrawStatus::ResultPublished, DrawStatus::Completed])
-            ->with(['result.winningNumbers', 'winningNumbers'])
+            ->with('result')
             ->latest('completed_at')
             ->first();
 
-        $recentTransactions = FinancialTransaction::query()
-            ->where('user_id', $user->id)
-            ->latest('id')
-            ->take(5)
-            ->get();
+        $recentBets = Bet::query()->where('user_id', $user->id)->latest('id')->take(5)->get();
+        $recentTx = FinancialTransaction::query()->where('user_id', $user->id)->latest('id')->take(10)->get();
 
-        return view('player.dashboard', [
-            'user' => $user,
-            'wallet' => $wallet,
-            'openDraw' => $openDraw,
-            'upcomingDraw' => $upcomingDraw,
-            'recentBets' => $recentBets,
-            'latestCompletedDraw' => $latestCompletedDraw,
-            'recentTransactions' => $recentTransactions,
-        ]);
+        $name = (string) ($user->name ?? $user->username ?? '');
+
+        // Activity feed: bets plus deposits/wins found in the transaction log.
+        $activity = [];
+        foreach ($recentBets as $bet) {
+            $activity[] = ['at' => $bet->created_at, 'type' => 'bet', 'text' => 'Bet Placed', 'ref' => '#'.$bet->bet_number];
+        }
+        foreach ($recentTx as $tx) {
+            $t = strtolower($tx->type instanceof \BackedEnum ? (string) $tx->type->value : (string) $tx->type);
+            $kind = str_contains($t, 'deposit') ? 'deposit' : (str_contains($t, 'win') || str_contains($t, 'payout') ? 'win' : null);
+            $c = $tx->currency instanceof Currency ? $tx->currency : Currency::tryFrom((string) $tx->currency);
+            if ($kind === null || $c === null) {
+                continue;
+            }
+            $activity[] = [
+                'at' => $tx->created_at,
+                'type' => $kind,
+                'text' => $kind === 'deposit' ? 'Deposit Successful' : 'Win Credited',
+                'ref' => Money::fromDatabase((string) $tx->amount, $c)->format(),
+            ];
+        }
+        usort($activity, fn ($a, $b) => $b['at'] <=> $a['at']);
+        $activity = array_map(
+            fn ($a) => ['type' => $a['type'], 'text' => $a['text'], 'ref' => $a['ref'], 'ago' => $a['at']?->diffForHumans() ?? ''],
+            array_slice($activity, 0, 5),
+        );
+
+        $state = [
+            'user' => ['name' => $name, 'initials' => mb_strtoupper(mb_substr($name, 0, 1)), 'tier' => null, 'notifications' => 0],
+            'stats' => [
+                'balance' => $currency ? Money::of((string) $wallet->balance, $currency)->format() : null,
+                'balanceDelta' => null,
+                'winnings' => $currency ? $this->sumWonPayouts($user->id, $currency) : null,
+                'winningsDelta' => null,
+                'bets' => Bet::query()->where('user_id', $user->id)->count(),
+                'betsDelta' => null,
+                'points' => null,   // no rewards system in the database yet
+                'pointsDelta' => null,
+            ],
+            'live' => $liveDraw ? [
+                'game' => 'Thai',
+                'name' => 'Lottery',
+                'drawNo' => (string) $liveDraw->draw_number,
+                'drawAt' => $liveDraw->scheduled_at->toIso8601String(),
+            ] : null,
+            'results' => ($latest && $latest->result && $latest->result->first_prize) ? [[
+                'label' => 'Thai Lottery',
+                'drawNo' => (string) $latest->draw_number,
+                'date' => $latest->completed_at?->format('D, M d, Y') ?? '',
+                'balls' => str_split((string) $latest->result->first_prize),
+                'nextDraw' => $upcomingDraws->first()?->scheduled_at?->format('H:i') ?? '—',
+            ]] : [],
+            'upcoming' => $upcomingDraws->values()->map(fn ($d, $i) => [
+                'name' => (string) $d->draw_number,
+                'time' => $d->scheduled_at->format('H:i'),
+                'at' => $d->scheduled_at->toIso8601String(),
+                'tone' => ['green', 'blue', 'purple', 'gold'][$i % 4],
+            ])->all(),
+            'activity' => $activity,
+            'level' => ['tier' => null, 'pct' => null, 'next' => null], // no VIP levels in the database yet
+        ];
+
+        return view('player.dashboard-gold', ['state' => $state]);
+    }
+
+    /** Sum potential_payout of this user's won bets through Money (no float math). */
+    private function sumWonPayouts(int $userId, Currency $currency): string
+    {
+        $won = BetStatus::tryFrom('won');
+        $total = Money::zero($currency);
+        if ($won !== null) {
+            $amounts = Bet::query()
+                ->where('user_id', $userId)
+                ->where('status', $won)
+                ->where('currency', $currency->value)
+                ->pluck('potential_payout');
+            foreach ($amounts as $amount) {
+                $total = $total->plus(Money::fromDatabase((string) $amount, $currency));
+            }
+        }
+
+        return $total->format();
     }
 
     /**
@@ -317,12 +380,55 @@ final class PlayerWebController
             ];
         }
 
+        // Read-only presentation data for the Last Draw Results and Live Feed
+        // panels. Nothing below feeds purchase, pricing or settlement.
+        $bottomTwoKey = (string) config('lottery.results.bottom_two_metadata_key', 'bottom_two');
+        $lastResults = Draw::query()
+            ->whereNotNull('result_published_at')
+            ->with('result')
+            ->orderByDesc('result_published_at')
+            ->limit(5)
+            ->get()
+            ->map(static function (Draw $draw) use ($bottomTwoKey): array {
+                $metadata = $draw->result?->metadata;
+                $bottomTwo = is_array($metadata) ? ($metadata[$bottomTwoKey] ?? null) : null;
+                $firstPrize = $draw->result?->first_prize;
+
+                return [
+                    'draw_number' => (string) $draw->draw_number,
+                    'first_prize' => $firstPrize !== null && $firstPrize !== '' ? (string) $firstPrize : null,
+                    'bottom_two' => is_scalar($bottomTwo) && (string) $bottomTwo !== '' ? (string) $bottomTwo : null,
+                    'published_at' => $draw->result_published_at?->format('d M Y'),
+                ];
+            })
+            ->all();
+
+        // Players are shown only as a one-way anonymous code; no name, e-mail
+        // or user id ever reaches the browser.
+        $liveFeed = $openDraw === null ? [] : Bet::query()
+            ->where('draw_id', $openDraw->id)
+            ->whereNotIn('status', [BetStatus::Cancelled->value, BetStatus::Refunded->value])
+            ->latest('id')
+            ->limit(10)
+            ->get()
+            ->map(static function (Bet $bet): array {
+                return [
+                    'player' => 'P-'.strtoupper(substr(hash('sha256', $bet->user_id.'|'.config('app.key')), 0, 5)),
+                    'type' => $bet->type instanceof \App\Enums\BetType ? strtoupper($bet->type->value) : '',
+                    'stake' => $bet->currency instanceof Currency ? $bet->currency->format((string) $bet->stake_amount) : '',
+                    'when' => $bet->created_at?->diffForHumans(),
+                ];
+            })
+            ->all();
+
         return view('player.bet', [
             'user' => $user,
             'wallet' => $wallet,
             'openDraw' => $openDraw,
             'marketOptions' => $marketOptions,
             'bettingCurrency' => $bettingCurrency,
+            'lastResults' => $lastResults,
+            'liveFeed' => $liveFeed,
         ]);
     }
 
@@ -513,6 +619,13 @@ final class PlayerWebController
             return redirect()->away($gatewayResponse->redirectUrl);
         }
 
+        // Manual bKash/Nagad: the status page shows where to pay and takes the
+        // sender number and TrxID. It records a claim; staff verify it later.
+        if (in_array($deposit->method, [PaymentMethod::Bkash, PaymentMethod::Nagad], true)
+            && strtolower(trim((string) config('payment.gateways.'.$deposit->method->value.'.mode', 'api'))) === 'manual') {
+            return redirect()->route('player.deposit.status', ['deposit' => (string) $deposit->reference_number]);
+        }
+
         // Manual settlement (operator-configured bank transfer): show the
         // operator's real settlement instructions for this reference.
         $instructions = $gatewayResponse->metadata['instructions'] ?? null;
@@ -546,7 +659,64 @@ final class PlayerWebController
             })
             ->firstOrFail();
 
-        return view('player.deposit-status', ['deposit' => $record]);
+        $manualWallet = null;
+        if (in_array($record->method, [PaymentMethod::Bkash, PaymentMethod::Nagad], true)
+            && $record->currency === \App\Enums\Currency::BDT
+            && strtolower(trim((string) config('payment.gateways.'.$record->method->value.'.mode', 'api'))) === 'manual') {
+            $proof = \Illuminate\Support\Facades\DB::table(\App\Services\Payment\ManualWalletDepositProofService::TABLE)
+                ->where('deposit_id', $record->id)
+                ->first();
+            $manualWallet = [
+                'merchant_number' => (string) config('payment.gateways.'.$record->method->value.'.merchant_number', ''),
+                'merchant_name' => (string) config('payment.gateways.'.$record->method->value.'.merchant_name', ''),
+                'proof' => $proof,
+                'can_submit' => $proof === null
+                    && $record->status === \App\Enums\DepositStatus::Pending
+                    && $record->financial_transaction_id === null,
+            ];
+        }
+
+        return view('player.deposit-status', ['deposit' => $record, 'manualWallet' => $manualWallet]);
+    }
+
+    /**
+     * Record the sender number and TrxID for a manual bKash/Nagad deposit.
+     * A claim only: staff verify it before any wallet credit.
+     */
+    public function submitDepositProof(
+        SubmitManualDepositProofRequest $request,
+        string $deposit,
+        \App\Services\Payment\ManualWalletDepositProofService $proofs,
+    ): RedirectResponse {
+        /** @var User $user */
+        $user = Auth::user();
+
+        try {
+            $record = $proofs->submit(
+                $user,
+                $deposit,
+                (string) $request->validated('sender_number'),
+                (string) $request->validated('trx_id'),
+            );
+        } catch (FinancialException $exception) {
+            $key = match ($exception->errorCode()) {
+                'deposit_not_found' => null,
+                'manual_proof_sender_invalid' => 'error_sender_invalid',
+                'manual_proof_trx_invalid' => 'error_trx_invalid',
+                'manual_proof_trx_used' => 'error_trx_used',
+                'manual_proof_already_submitted' => 'error_already_submitted',
+                'manual_proof_not_applicable', 'manual_proof_deposit_not_pending' => 'error_not_available',
+                default => 'error_generic',
+            };
+            abort_if($key === null, 404);
+
+            return redirect()->route('player.deposit.status', ['deposit' => $deposit])
+                ->withInput($request->only('sender_number', 'trx_id'))
+                ->with('error', trans('payment_ops.manual_wallet.'.$key));
+        }
+
+        return redirect()->route('player.deposit.status', ['deposit' => (string) $record->reference_number])
+            ->with('status', trans('payment_ops.manual_wallet.success_flash'));
     }
 
     /**

@@ -6,10 +6,8 @@ namespace Tests\Security;
 
 use App\Contracts\Security\SecurityRiskEngine;
 use App\DTOs\Security\FraudDecisionData;
-use App\Enums\AuditAction;
 use App\Enums\FraudDecision;
 use App\Enums\MalwareScanStatus;
-use App\Enums\RiskLevel;
 use App\Http\Middleware\FraudRiskGateMiddleware;
 use App\Http\Middleware\VerifyCsrfToken;
 use App\Http\Requests\Admin\Security\ReviewFraudAlertRequest;
@@ -23,16 +21,14 @@ use App\Services\Uploads\UploadQuarantineService;
 use DomainException;
 use Illuminate\Foundation\Http\Middleware\ValidateCsrfToken;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\Middleware\TrustProxies;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
-use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
-use RuntimeException;
-use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
-use Illuminate\Http\Exceptions\HttpResponseException;
-use Tests\TestCase;
 use ReflectionClass;
+use RuntimeException;
+use Tests\TestCase;
 
 final class SecurityNextHardeningVerificationTest extends TestCase
 {
@@ -178,6 +174,14 @@ final class SecurityNextHardeningVerificationTest extends TestCase
         $resObserve = $middleware->handle($reqObserve, static fn () => response()->json(['ok' => true]));
         $this->assertSame(200, $resObserve->getStatusCode());
         $this->assertInstanceOf(FraudDecisionData::class, $reqObserve->attributes->get('fraud_decision_observed'));
+
+        // Unknown or misspelled modes must fail closed, not silently become observe mode.
+        config(['fraud.mode' => 'enfroce']);
+        $reqTypo = Request::create('/api/v1/withdrawals', 'POST', ['amount' => '5000.0000']);
+        $reqTypo->setUserResolver(static fn () => $user);
+        $resTypo = $middleware->handle($reqTypo, static fn () => response()->json(['ok' => true]));
+        $this->assertSame(403, $resTypo->getStatusCode());
+        $this->assertStringContainsString('TRANSACTION_STEP_UP_REQUIRED', (string) $resTypo->getContent());
     }
 
     public function test_field_encryption_has_no_hardcoded_fallback_secret_and_fails_closed_when_key_missing(): void
@@ -256,7 +260,7 @@ final class SecurityNextHardeningVerificationTest extends TestCase
 
         self::assertSame(['proxies'], array_keys($config), 'a second knob would drift from the one the middleware reads');
 
-        $mask = (new ReflectionClass(\Illuminate\Http\Middleware\TrustProxies::class))
+        $mask = (new ReflectionClass(TrustProxies::class))
             ->getStaticPropertyValue('alwaysTrustHeaders');
 
         self::assertIsInt($mask, 'bootstrap/app.php must pin the header mask');

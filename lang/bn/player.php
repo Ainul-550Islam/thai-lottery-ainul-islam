@@ -402,4 +402,18 @@ return array_replace($english, [
     'two_factor_recovery_codes_title' => 'আপনার রিকভারি কোডগুলো সেভ করুন',
     'two_factor_recovery_codes_save' => 'এই কোডগুলো ডাউনলোড বা কপি করে রাখুন। অথেনটিকেটর অ্যাপে অ্যাক্সেস না পাওয়া গেলে এগুলো ব্যবহার করে সাইন-ইন করতে পারবেন।',
     'two_factor_recovery_codes_warning' => 'প্রতিটি কোড শুধু একবার ব্যবহার করা যাবে। নিরাপদে সংরক্ষণ করুন।',
+
+    // Bet page: countdown, last results, live feed
+    'stake_currency' => 'বাজির পরিমাণ (:currency)',
+    'last_draw_results' => 'সর্বশেষ ড্রয়ের ফলাফল',
+    'first_prize_label' => 'প্রথম পুরস্কার',
+    'bottom_two_label' => 'নিচের ২ সংখ্যা',
+    'no_results_yet' => 'এখনো কোনো ফলাফল প্রকাশ করা হয়নি।',
+    'live_bets_feed' => 'লাইভ বাজি',
+    'live_feed_privacy_note' => 'খেলোয়াড়দের শুধু গোপন কোড দিয়ে দেখানো হয়।',
+    'feed_player' => 'খেলোয়াড়',
+    'feed_market' => 'ধরন',
+    'feed_stake' => 'বাজি',
+    'feed_time' => 'সময়',
+    'no_live_bets' => 'এই ড্রয়ে এখনো কোনো বাজি ধরা হয়নি।',
 ]);

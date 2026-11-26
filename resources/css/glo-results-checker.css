@@ -12,8 +12,8 @@
     --glo-gold-glow: rgba(212, 175, 55, 0.35);
     --glo-gold-gradient: linear-gradient(135deg, #fce96a 0%, #e3b838 40%, #b8860b 100%);
     --glo-gold-ball-gradient: radial-gradient(circle at 35% 30%, #fff6cc 0%, #fbd45a 25%, #d99a18 60%, #875405 100%);
-    --glo-text-white: #f8fafc;
-    --glo-text-muted: #94a3b8;
+    --glo-text-white: #fbf7ea;
+    --glo-text-muted: #b3a37d;
 }
 
 body.glo-page-body {
@@ -24,7 +24,7 @@ body.glo-page-body {
     padding: 0;
     background-image:
         radial-gradient(circle at 50% 15%, rgba(212, 175, 55, 0.08) 0%, transparent 60%),
-        radial-gradient(circle at 85% 65%, rgba(16, 185, 129, 0.04) 0%, transparent 50%);
+        radial-gradient(circle at 85% 65%, rgba(230, 174, 38, 0.04) 0%, transparent 50%);
 }
 
 .glo-bg-watermark {
@@ -142,7 +142,7 @@ body.glo-page-body {
 }
 
 .glo-hero-header span.published-date {
-    color: #e2e8f0;
+    color: #e4d9bc;
     font-weight: 600;
     font-size: 1.1rem;
     text-transform: none;
@@ -171,7 +171,7 @@ body.glo-page-body {
 .glo-result-tier-title {
     font-size: 0.95rem;
     font-weight: 700;
-    color: #e2e8f0;
+    color: #e4d9bc;
 }
 
 /* 3D Metallic Golden Lottery Balls */
@@ -259,7 +259,7 @@ body.glo-page-body {
 
 .glo-section-card-sub {
     font-size: 0.8125rem;
-    color: #cbd5e1;
+    color: #cbbd98;
     text-align: center;
     margin-bottom: 1.25rem;
 }
@@ -299,7 +299,7 @@ body.glo-page-body {
     padding: 0.75rem 0.25rem;
     font-size: 1.1rem;
     font-weight: 800;
-    color: #f8fafc;
+    color: #fbf7ea;
     cursor: pointer;
     transition: all 0.15s ease;
     user-select: none;
@@ -324,7 +324,7 @@ body.glo-page-body {
 }
 
 .glo-key-btn.btn-check {
-    color: #34d399;
+    color: #f6c744;
     font-size: 0.875rem;
 }
 
@@ -384,7 +384,7 @@ body.glo-page-body {
 
 .glo-multiplier-table td {
     padding: 0.7rem 1rem;
-    color: #e2e8f0;
+    color: #e4d9bc;
     border-bottom: 1px solid #162232;
     white-space: nowrap;
 }
@@ -404,7 +404,7 @@ body.glo-page-body {
     border-top: 1px solid rgba(212, 175, 55, 0.15);
     padding: 2rem 1.5rem;
     font-size: 0.75rem;
-    color: #64748b;
+    color: #968967;
     text-align: center;
 }
 
@@ -418,7 +418,7 @@ body.glo-page-body {
 }
 
 .glo-footer-link {
-    color: #94a3b8;
+    color: #b3a37d;
     text-decoration: none;
     font-weight: 600;
 }
@@ -438,7 +438,7 @@ body.glo-page-body {
 .glo-social-icon {
     width: 18px;
     height: 18px;
-    color: #94a3b8;
+    color: #b3a37d;
     transition: color 0.2s ease;
 }
 

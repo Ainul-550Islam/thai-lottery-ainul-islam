@@ -27,7 +27,6 @@ repo
 runtime
 uploads
 deployment
-docker/php-fpm
 *.log
 *.zip
 *.pem
@@ -35,3 +34,11 @@ docker/php-fpm
 .DS_Store
 .profile
 .sudo_as_admin_successful
+
+# delivery bundles
+/app.zip
+/bootstrap.zip
+/config.zip
+/public.zip
+/resources.zip
+/routes.zip

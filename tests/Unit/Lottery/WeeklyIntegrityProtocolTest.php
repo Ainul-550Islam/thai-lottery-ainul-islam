@@ -9,6 +9,7 @@ use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\TestCase;
 
 /** Subprocess protocol fault injection, not evidence of native cryptography. */
+#[\PHPUnit\Framework\Attributes\RequiresOperatingSystem('Linux|Darwin')]
 final class WeeklyIntegrityProtocolTest extends TestCase
 {
     private string $directory;

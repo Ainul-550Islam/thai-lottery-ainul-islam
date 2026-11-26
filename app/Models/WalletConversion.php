@@ -165,21 +165,28 @@ class WalletConversion extends Model
         ];
     }
 
+    /**
+     * @param  Builder<self>  $query
+     * @return Builder<self>
+     */
     public function scopeForUser(Builder $query, int $userId): Builder
     {
         return $query->where('user_id', $userId);
     }
 
+    /** @return BelongsTo<User, $this> */
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
     }
 
+    /** @return BelongsTo<Wallet, $this> */
     public function fromWallet(): BelongsTo
     {
         return $this->belongsTo(Wallet::class, 'from_wallet_id');
     }
 
+    /** @return BelongsTo<Wallet, $this> */
     public function toWallet(): BelongsTo
     {
         return $this->belongsTo(Wallet::class, 'to_wallet_id');

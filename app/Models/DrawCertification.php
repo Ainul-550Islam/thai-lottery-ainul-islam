@@ -32,11 +32,13 @@ class DrawCertification extends Model
         'metadata' => 'array',
     ];
 
+    /** @return BelongsTo<Draw, $this> */
     public function draw(): BelongsTo
     {
         return $this->belongsTo(Draw::class);
     }
 
+    /** @return HasMany<DrawPublication, $this> */
     public function publications(): HasMany
     {
         return $this->hasMany(DrawPublication::class);

@@ -179,3 +179,10 @@ If an unrecoverable P0 issue occurs during cutover, execute the rollback immedia
    supervisorctl start thailotto-worker:*
    curl -f http://127.0.0.1/up
    ```
+
+## Runtime declaration (checked by scripts/verify_runtime_matrix.mjs)
+
+- PHP 8.4
+- Laravel 12.x
+- Node.js 24.22.0
+- NPM 11.21.1

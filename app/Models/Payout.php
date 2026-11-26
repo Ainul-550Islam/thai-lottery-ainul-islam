@@ -81,12 +81,13 @@ class Payout extends Model
             'multiplier' => 'decimal:4',
             'processed_at' => 'datetime',
             'failed_at' => 'datetime',
+            'paid_at' => 'datetime',
             'metadata' => 'array',
         ];
     }
 
     /**
-     * @return BelongsTo<Draw, self>
+     * @return BelongsTo<Draw, $this>
      */
     public function draw(): BelongsTo
     {
@@ -96,7 +97,7 @@ class Payout extends Model
     /**
      * The winning bet this payout settles.
      *
-     * @return BelongsTo<Bet, self>
+     * @return BelongsTo<Bet, $this>
      */
     public function bet(): BelongsTo
     {
@@ -109,7 +110,7 @@ class Payout extends Model
      * The payouts table carries its own nullable ticket_id foreign key, so the
      * link is direct and does not have to be resolved through the bet.
      *
-     * @return BelongsTo<Ticket, self>
+     * @return BelongsTo<Ticket, $this>
      */
     public function ticket(): BelongsTo
     {
@@ -117,7 +118,7 @@ class Payout extends Model
     }
 
     /**
-     * @return BelongsTo<User, self>
+     * @return BelongsTo<User, $this>
      */
     public function user(): BelongsTo
     {
@@ -125,7 +126,7 @@ class Payout extends Model
     }
 
     /**
-     * @return BelongsTo<Wallet, self>
+     * @return BelongsTo<Wallet, $this>
      */
     public function wallet(): BelongsTo
     {
@@ -133,7 +134,7 @@ class Payout extends Model
     }
 
     /**
-     * @return BelongsTo<FinancialTransaction, self>
+     * @return BelongsTo<FinancialTransaction, $this>
      */
     public function financialTransaction(): BelongsTo
     {
@@ -143,7 +144,7 @@ class Payout extends Model
     /**
      * Ledger entries that reference this payout polymorphically.
      *
-     * @return MorphMany<LedgerEntry>
+     * @return MorphMany<LedgerEntry, $this>
      */
     public function ledgerEntries(): MorphMany
     {

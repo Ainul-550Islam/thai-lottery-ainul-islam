@@ -15,6 +15,7 @@ use App\Exceptions\WithdrawalException;
 use App\Models\User;
 use App\Models\Wallet;
 use App\Models\Withdrawal;
+use App\Services\Account\MemberBankAccountService;
 use App\Services\Compliance\MoneyFlowAmlObservationService;
 use App\Services\Compliance\RealMoneyGate;
 use App\Services\Compliance\WithdrawalKycGateService as ComplianceKycGate;
@@ -167,12 +168,39 @@ final class WithdrawalService
             $options['metadata'][WithdrawalProviderAccountService::METADATA_KEY]
                 = app(WithdrawalProviderAccountService::class)->current($method->value);
 
+            $memberBankAccountId = isset($options['member_bank_account_id']) && $options['member_bank_account_id'] !== null
+                ? (int) $options['member_bank_account_id']
+                : null;
+            $payoutDetails = isset($options['payout_details']) && is_array($options['payout_details'])
+                ? $options['payout_details']
+                : null;
+
+            if ($memberBankAccountId !== null) {
+                $bankOwner = $rgUser ?? User::query()->findOrFail($lockedWallet->user_id);
+                $verifiedBank = app(MemberBankAccountService::class)
+                    ->resolveForWithdrawal($bankOwner, $memberBankAccountId, true);
+
+                $payoutDetails ??= [
+                    'bank_code' => $verifiedBank->bank_code,
+                    'account_name' => $verifiedBank->account_name,
+                    'account_last4' => $verifiedBank->last4,
+                ];
+            }
+
+            if ($memberBankAccountId === null && (bool) config('rewards.withdrawals.require_verified_bank_account', false)) {
+                throw WithdrawalException::withReason(
+                    'A verified bank account is required to request a withdrawal.',
+                    'bank_account_required',
+                );
+            }
+
             $withdrawal = new Withdrawal;
 
             $withdrawal->fill([
                 'reference_number' => $this->generateReferenceNumber(),
                 'user_id' => (int) $lockedWallet->user_id,
                 'wallet_id' => (int) $lockedWallet->getKey(),
+                'member_bank_account_id' => $memberBankAccountId,
                 'method' => $method,
                 'provider' => $this->stringOption($options, 'provider'),
                 'provider_reference' => $this->stringOption($options, 'provider_reference'),
@@ -181,9 +209,7 @@ final class WithdrawalService
                 'amount' => $amount->toString(),
                 'fee' => $fee->toString(),
                 'net_amount' => $netAmount->toString(),
-                'payout_details' => isset($options['payout_details']) && is_array($options['payout_details'])
-                    ? $options['payout_details']
-                    : null,
+                'payout_details' => $payoutDetails,
                 'metadata' => $this->buildMetadata($options),
             ]);
 

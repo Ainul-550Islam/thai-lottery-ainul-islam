@@ -30,6 +30,9 @@ class PaymentMethodConfig extends Model
         'metadata' => 'array',
     ];
 
+    /**
+     * @return BelongsTo<PaymentProvider, $this>
+     */
     public function provider(): BelongsTo
     {
         return $this->belongsTo(PaymentProvider::class, 'provider_id');

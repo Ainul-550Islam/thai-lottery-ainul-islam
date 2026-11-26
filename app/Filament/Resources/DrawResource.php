@@ -11,6 +11,7 @@ use App\Filament\Resources\DrawResource\Pages;
 use App\Models\Draw;
 use App\Services\Draw\DrawLifecycleService;
 use App\Support\Admin\AdminAccess;
+use App\Support\Admin\AdminPermission;
 use App\Support\Admin\AdminFormat;
 use Filament\Forms;
 use Filament\Forms\Form;
@@ -57,7 +58,7 @@ class DrawResource extends Resource
 
     public static function canViewAny(): bool
     {
-        return AdminAccess::current(AdminAccess::VIEW_DRAWS);
+        return AdminAccess::permits(AdminPermission::GAMES_VIEW);
     }
 
     public static function canView(\Illuminate\Database\Eloquent\Model $record): bool
@@ -67,12 +68,12 @@ class DrawResource extends Resource
 
     public static function canCreate(): bool
     {
-        return AdminAccess::current(AdminAccess::MANAGE_DRAWS);
+        return AdminAccess::permits(AdminPermission::GAMES_MANAGE);
     }
 
     public static function canEdit(\Illuminate\Database\Eloquent\Model $record): bool
     {
-        return AdminAccess::current(AdminAccess::MANAGE_DRAWS)
+        return AdminAccess::permits(AdminPermission::GAMES_MANAGE)
             && app(DrawLifecycleService::class)->isMutable($record);
     }
 

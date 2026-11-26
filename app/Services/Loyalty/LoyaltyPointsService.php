@@ -44,8 +44,19 @@ final class LoyaltyPointsService
 
     public const ENTRY_ADJUST = 'adjust';
 
+    /**
+     * BATCH 3 (additive): the campaign multiplier is an OPTIONAL collaborator.
+     *
+     * It is nullable and last, so every existing construction site — the
+     * container, `new LoyaltyPointsService($wallets)` in a test, a factory —
+     * keeps working unchanged, and with no campaign configured the results are
+     * byte-for-byte what they were before. PointsMultiplierService is a pure
+     * lookup (no writes), so consulting it inside an earn transaction adds no
+     * nested write.
+     */
     public function __construct(
         private readonly WalletService $wallets,
+        private readonly ?PointsMultiplierService $campaigns = null,
     ) {}
 
     public function currentBalance(User|int $user): int
@@ -147,7 +158,8 @@ final class LoyaltyPointsService
             return null;
         }
 
-        $points = $this->calculatePoints($stakeAmount, $tierKey);
+        $points = $this->effectivePoints($stakeAmount, $tierKey);
+
         if ($points <= 0) {
             return null;
         }
@@ -183,13 +195,57 @@ final class LoyaltyPointsService
                 'idempotency_key' => $idempotencyKey,
                 'description' => sprintf('Earned %d pts on settled stake (%s tier)', $points, $tierKey),
                 'expires_at' => Carbon::now()->addDays($expiryDays),
-                'metadata' => [
+                'metadata' => array_merge([
                     'stake_amount' => bcadd($stakeAmount, '0', 2),
                     'tier_key' => $tierKey,
                     'multiplier' => $this->multiplierForTier($tierKey),
-                ],
+                ], $this->campaignAuditMetadata()),
             ]);
         });
+    }
+
+    /**
+     * BATCH 3 (additive): base points with the active campaign multiplier applied.
+     *
+     * With no PointsMultiplierService bound, or no active campaign, or
+     * promotions.multiplier_stacking = 'none', this returns EXACTLY what
+     * calculatePoints() returns — the no-op path is a plain delegation, not a
+     * multiply by 1.0, so there is no arithmetic that could round differently.
+     */
+    public function effectivePoints(string $stakeAmount, string $tierKey = 'bronze'): int
+    {
+        $base = $this->calculatePoints($stakeAmount, $tierKey);
+
+        if ($base <= 0 || $this->campaigns === null) {
+            return $base;
+        }
+
+        return $this->campaigns->effectivePoints($base, null, null, $tierKey);
+    }
+
+    /**
+     * BATCH 3 (additive): the campaign stamp recorded on the points ledger row.
+     *
+     * Empty when no campaign applied, so the stored metadata of a normal earn is
+     * identical to what it was before this batch.
+     *
+     * @return array<string, mixed>
+     */
+    private function campaignAuditMetadata(): array
+    {
+        if ($this->campaigns === null) {
+            return [];
+        }
+
+        $stamp = $this->campaigns->auditStampAt();
+
+        if ($stamp === null) {
+            return [];
+        }
+
+        $key = (string) config('player_experience.loyalty.multiplier_audit_key', 'points_multiplier_key');
+
+        return [$key => $stamp];
     }
 
     /**
@@ -315,6 +371,140 @@ final class LoyaltyPointsService
                 'financial_transaction_id' => (int) $tx->getKey(),
                 'idempotency_key' => $effectiveKey,
                 'redeemed_at' => $now,
+            ]);
+        });
+    }
+
+    /**
+     * Spend loyalty points inside an existing or new DB transaction for catalog redemption.
+     *
+     * @param  array<string, mixed>  $metadata
+     *
+     * @throws FinancialException
+     */
+    public function spendPoints(
+        User $user,
+        int $pointsCost,
+        string $sourceType,
+        string|int $sourceId,
+        string $idempotencyKey,
+        string $description,
+        array $metadata = [],
+    ): LoyaltyPointLedger {
+        if ($pointsCost <= 0) {
+            throw FinancialException::withCode(
+                'invalid_loyalty_points_cost',
+                'Points spent must be a positive integer.',
+            );
+        }
+
+        if (ResponsibleGamingGate::isSelfExcluded($user)) {
+            throw FinancialException::withCode(
+                'self_excluded_promotional_block',
+                'Loyalty rewards cannot be redeemed while a self-exclusion is active.',
+            );
+        }
+
+        return DB::transaction(function () use ($user, $pointsCost, $sourceType, $sourceId, $idempotencyKey, $description, $metadata): LoyaltyPointLedger {
+            User::query()->whereKey($user->getKey())->lockForUpdate()->firstOrFail();
+
+            /** @var LoyaltyPointLedger|null $existing */
+            $existing = LoyaltyPointLedger::query()
+                ->where('idempotency_key', $idempotencyKey)
+                ->first();
+
+            if ($existing instanceof LoyaltyPointLedger) {
+                return $existing;
+            }
+
+            /** @var LoyaltyPointLedger|null $latest */
+            $latest = LoyaltyPointLedger::query()
+                ->where('user_id', $user->getKey())
+                ->orderByDesc('id')
+                ->lockForUpdate()
+                ->first();
+
+            $currentBalance = $latest instanceof LoyaltyPointLedger ? (int) $latest->balance_after : 0;
+
+            if ($currentBalance < $pointsCost) {
+                throw FinancialException::withCode(
+                    'insufficient_loyalty_points',
+                    sprintf('You need %d points to redeem this reward (current balance: %d).', $pointsCost, $currentBalance),
+                    ['required' => $pointsCost, 'available' => $currentBalance],
+                );
+            }
+
+            return LoyaltyPointLedger::query()->create([
+                'user_id' => (int) $user->getKey(),
+                'entry_type' => self::ENTRY_REDEEM,
+                'points' => -$pointsCost,
+                'balance_after' => $currentBalance - $pointsCost,
+                'source_type' => $sourceType,
+                'source_id' => (string) $sourceId,
+                'idempotency_key' => $idempotencyKey,
+                'description' => $description,
+                'expires_at' => null,
+                'metadata' => $metadata,
+            ]);
+        });
+    }
+
+    /**
+     * Return previously spent points (e.g. a rejected reward claim) as a positive
+     * ADJUST ledger entry. Idempotent per key; the ledger stays append-only.
+     *
+     * @param  array<string, mixed>  $metadata
+     *
+     * @throws FinancialException
+     */
+    public function refundPoints(
+        User $user,
+        int $points,
+        string $sourceType,
+        string|int $sourceId,
+        string $idempotencyKey,
+        string $description,
+        array $metadata = [],
+    ): LoyaltyPointLedger {
+        if ($points <= 0) {
+            throw FinancialException::withCode(
+                'invalid_loyalty_points_refund',
+                'Refunded points must be a positive integer.',
+            );
+        }
+
+        return DB::transaction(function () use ($user, $points, $sourceType, $sourceId, $idempotencyKey, $description, $metadata): LoyaltyPointLedger {
+            User::query()->whereKey($user->getKey())->lockForUpdate()->firstOrFail();
+
+            /** @var LoyaltyPointLedger|null $existing */
+            $existing = LoyaltyPointLedger::query()
+                ->where('idempotency_key', $idempotencyKey)
+                ->first();
+
+            if ($existing instanceof LoyaltyPointLedger) {
+                return $existing;
+            }
+
+            /** @var LoyaltyPointLedger|null $latest */
+            $latest = LoyaltyPointLedger::query()
+                ->where('user_id', $user->getKey())
+                ->orderByDesc('id')
+                ->lockForUpdate()
+                ->first();
+
+            $currentBalance = $latest instanceof LoyaltyPointLedger ? (int) $latest->balance_after : 0;
+
+            return LoyaltyPointLedger::query()->create([
+                'user_id' => (int) $user->getKey(),
+                'entry_type' => self::ENTRY_ADJUST,
+                'points' => $points,
+                'balance_after' => $currentBalance + $points,
+                'source_type' => $sourceType,
+                'source_id' => (string) $sourceId,
+                'idempotency_key' => $idempotencyKey,
+                'description' => $description,
+                'expires_at' => null,
+                'metadata' => $metadata,
             ]);
         });
     }

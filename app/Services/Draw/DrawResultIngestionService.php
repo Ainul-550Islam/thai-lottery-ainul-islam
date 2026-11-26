@@ -67,6 +67,13 @@ class DrawResultIngestionService
         'admin',
         'admin-panel',
         'admin_entry',
+        // The digit-game lane (batch 2). It is a SERVER-OWNED LANE: it stages an official
+        // provider payload and publishes it through this boundary under four eyes, exactly
+        // like the panel entry paths above. Naming the lane here is what makes its
+        // publications trusted; the provider the payload came from travels separately, in
+        // the provenance reference, because this registry answers "which lane asserted
+        // this" and not "which feed produced it".
+        'lottery_games',
     ];
 
     /**

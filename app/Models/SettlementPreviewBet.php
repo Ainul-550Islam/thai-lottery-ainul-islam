@@ -35,6 +35,7 @@ class SettlementPreviewBet extends Model
         ];
     }
 
+    /** @return BelongsTo<SettlementPreview, $this> */
     public function preview(): BelongsTo
     {
         return $this->belongsTo(SettlementPreview::class, 'settlement_preview_id');

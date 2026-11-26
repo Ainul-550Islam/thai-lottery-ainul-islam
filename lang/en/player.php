@@ -296,6 +296,9 @@ return [
     'security_limits_action' => 'Manage responsible gaming limits',
     'status_active' => 'ACTIVE',
     'status_inactive' => 'INACTIVE',
+    'status_suspended' => 'SUSPENDED',
+    'status_banned' => 'BANNED',
+    'status_pending_verification' => 'PENDING VERIFICATION',
     'no_security_sessions' => 'No security sessions are recorded for this account.',
     'session_reference' => 'Session reference',
     'session_ip' => 'IP address',
@@ -414,4 +417,18 @@ return [
     'two_factor_recovery_codes_title' => 'Save Your Recovery Codes',
     'two_factor_recovery_codes_save' => 'Download or copy these codes. You can use them to sign in if you lose access to your authenticator app.',
     'two_factor_recovery_codes_warning' => 'Each code can be used only once. Store them securely.',
+
+    // Bet page: countdown, last results, live feed
+    'stake_currency' => 'Stake (:currency)',
+    'last_draw_results' => 'Last Draw Results',
+    'first_prize_label' => 'First Prize',
+    'bottom_two_label' => 'Bottom 2',
+    'no_results_yet' => 'No results have been published yet.',
+    'live_bets_feed' => 'Live Bets',
+    'live_feed_privacy_note' => 'Players appear only as anonymous codes.',
+    'feed_player' => 'Player',
+    'feed_market' => 'Type',
+    'feed_stake' => 'Stake',
+    'feed_time' => 'Time',
+    'no_live_bets' => 'No bets have been placed on this draw yet.',
 ];

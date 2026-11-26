@@ -2,6 +2,7 @@
  * Service Worker for ThaiLotto PWA.
  */
 const CACHE_NAME = 'thailotto-cache-v1';
+const BYPASS = /^\/(admin|livewire|filament|api|storage)(\/|$)/;
 const STATIC_ASSETS = [
     '/',
     '/favicon.ico',
@@ -32,7 +33,10 @@ self.addEventListener('fetch', (event) => {
     if (event.request.method !== 'GET') {
         return;
     }
+    if (BYPASS.test(new URL(event.request.url).pathname)) {
+        return;
+    }
     event.respondWith(
-        fetch(event.request).catch(() => caches.match(event.request))
+        fetch(event.request).catch(() => caches.match(event.request).then((cached) => cached || Response.error()))
     );
 });

@@ -47,7 +47,7 @@ class NotificationTemplate extends Model
     }
 
     /**
-     * @return HasMany<Notification>
+     * @return HasMany<Notification, $this>
      */
     public function notifications(): HasMany
     {

@@ -35,6 +35,7 @@ use LogicException;
  */
 class DataSubjectRequestEvent extends Model
 {
+    /** @use HasFactory<\Database\Factories\DataSubjectRequestEventFactory> */
     use HasFactory;
 
     public const ACTOR_REQUESTER = 'requester';

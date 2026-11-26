@@ -12,6 +12,11 @@
             <!-- Explicit file membership prevents overlapping directory suffixes from
                  adding ServerRaceTest files twice and makes suite discovery auditable. -->
             <file>tests/Feature/Betting/OwnedBetAmendmentServerRaceTest.php</file>
+            <file>tests/Feature/Agent/CommissionCancellationCurrentReadTest.php</file>
+            <file>tests/Feature/Agent/CommissionPayoutCurrentReadTest.php</file>
+            <file>tests/Feature/Agent/PaidCommissionCurrentReadTest.php</file>
+            <file>tests/Feature/Betting/BetCancellationCurrentReadTest.php</file>
+            <file>tests/Feature/Payment/FinancialHoldCurrentReadTest.php</file>
             <file>tests/Feature/Betting/OwnedPurchaseReplayServerRaceTest.php</file>
             <file>tests/Feature/Betting/PlayerWagerAdmissionServerTest.php</file>
             <file>tests/Feature/Betting/StripeRefundWagerGuardServerTest.php</file>
@@ -79,6 +84,11 @@
         <!-- Synthetic test-only credentials let mocked Stripe fixtures pass the real readiness gate. -->
         <env name="APP_COUNTRY" value="TH" force="true"/>
         <env name="FINANCE_DEFAULT_CURRENCY" value="THB" force="true"/>
+        <env name="FINANCE_PLAYER_CURRENCIES" value="THB,USD,BDT" force="true"/>
+        <env name="FINANCE_MAX_WITHDRAWAL" value="500000.00" force="true"/>
+        <env name="FINANCE_MIN_WITHDRAWAL" value="100.00" force="true"/>
+        <env name="FINANCE_MAX_DEPOSIT" value="500000.00" force="true"/>
+        <env name="FINANCE_MIN_DEPOSIT" value="50.00" force="true"/>
         <env name="STRIPE_ENABLED" value="true" force="true"/>
         <env name="STRIPE_KEY" value="pk_test_mock_publishable_key_12345" force="true"/>
         <env name="STRIPE_SECRET" value="sk_test_mock_secret_key_12345" force="true"/>
@@ -97,5 +107,9 @@
         <env name="NATIONAL_LOTTERY_FIXTURE_ENABLED" value="true" force="true"/>
         <env name="PCSO_LOTTERY_FIXTURE_ENABLED" value="true" force="true"/>
         <env name="BINGO_LOTTERY_FIXTURE_ENABLED" value="true" force="true"/>
+        <env name="FEES_CURRENCY" value="THB" force="true"/>
+        <env name="FINANCE_MIN_WITHDRAWAL" value="100.00" force="true"/>
+        <env name="BKASH_MODE" value="api" force="true"/>
+        <env name="NAGAD_MODE" value="api" force="true"/>
     </php>
 </phpunit>

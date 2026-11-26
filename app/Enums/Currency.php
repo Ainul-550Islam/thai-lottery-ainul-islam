@@ -33,6 +33,25 @@ enum Currency: string
     }
 
     /**
+     * The currency this deployment operates in (`payment.currency.default`).
+     *
+     * Unlike primary(), which names the platform's historical Thai currency,
+     * this follows the deployment's market configuration. It falls back to
+     * primary() when the setting is missing or unsupported, or when no
+     * application container is available (pure unit tests).
+     */
+    public static function site(): self
+    {
+        try {
+            $code = config('payment.currency.default');
+        } catch (\Throwable) {
+            $code = null;
+        }
+
+        return self::tryFromCode(is_string($code) ? $code : '') ?? self::primary();
+    }
+
+    /**
      * Resolve a currency from a code, case-insensitively.
      */
     public static function fromCode(string $code): self

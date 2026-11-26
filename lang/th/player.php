@@ -294,6 +294,9 @@ return [
     'security_limits_action' => 'จัดการขีดจำกัดการเล่นอย่างรับผิดชอบ',
     'status_active' => 'กำลังทำงาน',
     'status_inactive' => 'ไม่ทำงาน',
+    'status_suspended' => 'ถูกระงับ',
+    'status_banned' => 'ถูกแบน',
+    'status_pending_verification' => 'รอการยืนยัน',
     'no_security_sessions' => 'ไม่พบเซสชันความปลอดภัยของบัญชีนี้',
     'session_reference' => 'อ้างอิงเซสชัน',
     'session_ip' => 'ที่อยู่ IP',
@@ -412,4 +415,18 @@ return [
     'two_factor_recovery_codes_title' => 'บันทึกรหัสกู้คืนของคุณ',
     'two_factor_recovery_codes_save' => 'ดาวน์โหลดหรือคัดลอกรหัสเหล่านี้ คุณสามารถใช้เพื่อเข้าสู่ระบบหากเข้าแอปยืนยันตัวตนไม่ได้',
     'two_factor_recovery_codes_warning' => 'รหัสแต่ละชุดใช้ได้ครั้งเดียวเท่านั้น เก็บไว้อย่างปลอดภัย',
+
+    // Bet page: countdown, last results, live feed
+    'stake_currency' => 'จำนวนเงิน (:currency)',
+    'last_draw_results' => 'ผลรางวัลงวดล่าสุด',
+    'first_prize_label' => 'รางวัลที่ 1',
+    'bottom_two_label' => 'เลขท้าย 2 ตัว',
+    'no_results_yet' => 'ยังไม่มีการประกาศผลรางวัล',
+    'live_bets_feed' => 'การเดิมพันสด',
+    'live_feed_privacy_note' => 'ผู้เล่นแสดงเป็นรหัสนิรนามเท่านั้น',
+    'feed_player' => 'ผู้เล่น',
+    'feed_market' => 'ประเภท',
+    'feed_stake' => 'เงินเดิมพัน',
+    'feed_time' => 'เวลา',
+    'no_live_bets' => 'ยังไม่มีการเดิมพันในงวดนี้',
 ];

@@ -12,6 +12,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Agent extends Model
 {
+    /** @use HasFactory<\Database\Factories\AgentFactory> */
     use HasFactory, SoftDeletes;
 
     protected $fillable = [
@@ -45,21 +46,25 @@ class Agent extends Model
         ];
     }
 
+    /** @return BelongsTo<User, $this> */
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
     }
 
+    /** @return BelongsTo<Agent, $this> */
     public function parent(): BelongsTo
     {
         return $this->belongsTo(Agent::class, 'parent_agent_id');
     }
 
+    /** @return HasMany<Agent, $this> */
     public function children(): HasMany
     {
         return $this->hasMany(Agent::class, 'parent_agent_id');
     }
 
+    /** @return HasMany<AgentCommission, $this> */
     public function commissions(): HasMany
     {
         return $this->hasMany(AgentCommission::class);

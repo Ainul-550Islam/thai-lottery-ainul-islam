@@ -29,6 +29,44 @@
         @endif
     </section>
 
+    @if (! empty($manualWallet))
+        @php $methodLabel = $deposit->method?->label() ?? (string) $deposit->method; @endphp
+        <section class="space-y-5 rounded-2xl border border-slate-800 bg-slate-900 p-6" data-testid="manual-wallet-panel">
+            <h2 class="text-lg font-semibold text-white">{{ __('payment_ops.manual_wallet.title') }}</h2>
+            <p class="text-slate-300">{{ __('payment_ops.manual_wallet.send_exactly', ['amount' => $deposit->amount, 'currency' => $depositCurrency, 'method' => $methodLabel]) }}</p>
+            <dl class="grid gap-5 sm:grid-cols-2">
+                <div><dt class="text-sm text-slate-400">{{ __('payment_ops.manual_wallet.send_to') }}</dt><dd class="mt-1 text-xl font-bold tracking-wide text-white" data-testid="merchant-number">{{ $manualWallet['merchant_number'] }}</dd></div>
+                @if ($manualWallet['merchant_name'] !== '')
+                    <div><dt class="text-sm text-slate-400">{{ __('payment_ops.manual_wallet.account_name') }}</dt><dd class="mt-1 text-slate-200">{{ $manualWallet['merchant_name'] }}</dd></div>
+                @endif
+            </dl>
+            <p class="text-sm text-slate-400">{{ __('payment_ops.manual_wallet.reference_note', ['reference' => $deposit->reference_number]) }}</p>
+
+            @if ($manualWallet['proof'])
+                <div role="status" class="rounded-xl border border-amber-700 bg-amber-950/40 p-4 text-amber-100">
+                    <p class="font-semibold">{{ __('payment_ops.manual_wallet.submitted_title') }}</p>
+                    <p class="mt-1">{{ __('payment_ops.manual_wallet.submitted_notice', ['sender' => $manualWallet['proof']->sender_number, 'trx' => $manualWallet['proof']->trx_id]) }}</p>
+                </div>
+            @elseif ($manualWallet['can_submit'])
+                <form method="POST" action="{{ route('player.deposit.proof', ['deposit' => $deposit->reference_number]) }}" class="space-y-4">
+                    @csrf
+                    <h3 class="font-semibold text-white">{{ __('payment_ops.manual_wallet.form_title') }}</h3>
+                    <div>
+                        <label for="sender_number" class="block text-sm text-slate-300">{{ __('payment_ops.manual_wallet.sender_number', ['method' => $methodLabel]) }}</label>
+                        <input id="sender_number" name="sender_number" type="tel" inputmode="numeric" maxlength="20" required autocomplete="tel" value="{{ old('sender_number') }}" placeholder="01XXXXXXXXX" class="mt-1 w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-white">
+                        @error('sender_number')<p class="mt-1 text-sm text-rose-300" role="alert">{{ $message }}</p>@enderror
+                    </div>
+                    <div>
+                        <label for="trx_id" class="block text-sm text-slate-300">{{ __('payment_ops.manual_wallet.trx_id') }}</label>
+                        <input id="trx_id" name="trx_id" type="text" maxlength="32" required autocomplete="off" value="{{ old('trx_id') }}" class="mt-1 w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-white">
+                        @error('trx_id')<p class="mt-1 text-sm text-rose-300" role="alert">{{ $message }}</p>@enderror
+                    </div>
+                    <button type="submit" class="rounded-xl bg-emerald-500 px-5 py-3 font-semibold text-slate-950 hover:bg-emerald-400">{{ __('payment_ops.manual_wallet.submit') }}</button>
+                </form>
+            @endif
+        </section>
+    @endif
+
     <a href="{{ route('player.deposit') }}" class="inline-flex rounded-xl border border-slate-700 px-4 py-2 font-medium text-slate-200 hover:bg-slate-800">{{ __('payment_ops.back_to_deposits') }}</a>
 </div>
 @endsection

@@ -3,25 +3,28 @@
  *
  * Centralizes brand theme variables: background layers, glass layers,
  * border opacity, typography, accents, semantic feedback, and lottery highlights.
+ *
+ * Palette: gold/black. Neutrals and the brand accent come from tailwind-legacy-theme.json
+ * (the same ramps), so a change of palette starts there. Semantic states stay green/amber/red/blue.
  */
 
 :root {
     /* Color Palette - Neutrals & Slate Bases */
-    --tl-bg-main: #020617;
-    --tl-bg-surface-1: #0f172a;
-    --tl-bg-surface-2: #1e293b;
-    --tl-bg-surface-3: #334155;
+    --tl-bg-main: #080603;
+    --tl-bg-surface-1: #16110a;
+    --tl-bg-surface-2: #2b2312;
+    --tl-bg-surface-3: #4a3d1f;
 
     /* Text Colors */
-    --tl-text-primary: #f8fafc;
-    --tl-text-secondary: #94a3b8;
-    --tl-text-muted: #64748b;
-    --tl-text-inverted: #020617;
+    --tl-text-primary: #fbf7ea;
+    --tl-text-secondary: #b3a37d;
+    --tl-text-muted: #968967;
+    --tl-text-inverted: #080603;
 
     /* Brand & Accent */
-    --tl-brand-primary: #059669;
-    --tl-brand-primary-hover: #10b981;
-    --tl-brand-primary-light: rgba(16, 185, 129, 0.15);
+    --tl-brand-primary: #c78f17;
+    --tl-brand-primary-hover: #e6ae26;
+    --tl-brand-primary-light: rgba(230, 174, 38, 0.15);
     --tl-brand-accent: #f59e0b;
     --tl-brand-accent-hover: #d97706;
     --tl-brand-accent-light: rgba(245, 158, 11, 0.15);
@@ -44,11 +47,11 @@
     --tl-info-border: rgba(14, 165, 233, 0.3);
 
     /* Glass Tokens */
-    --tl-glass-bg-subtle: rgba(15, 23, 42, 0.65);
-    --tl-glass-bg-elevated: rgba(30, 41, 59, 0.75);
-    --tl-glass-bg-high: rgba(30, 41, 59, 0.9);
-    --tl-glass-border: rgba(255, 255, 255, 0.08);
-    --tl-glass-border-focus: rgba(16, 185, 129, 0.5);
+    --tl-glass-bg-subtle: rgba(22, 17, 10, 0.65);
+    --tl-glass-bg-elevated: rgba(43, 35, 18, 0.75);
+    --tl-glass-bg-high: rgba(43, 35, 18, 0.9);
+    --tl-glass-border: rgba(246, 199, 68, 0.14);
+    --tl-glass-border-focus: rgba(230, 174, 38, 0.5);
     --tl-glass-blur: 16px;
     --tl-glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
 

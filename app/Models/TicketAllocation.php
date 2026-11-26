@@ -37,7 +37,7 @@ final class TicketAllocation extends Model
     }
 
     /**
-     * @return BelongsTo<RetailVendor, self>
+     * @return BelongsTo<RetailVendor, $this>
      */
     public function vendor(): BelongsTo
     {
@@ -45,7 +45,7 @@ final class TicketAllocation extends Model
     }
 
     /**
-     * @return BelongsTo<TicketProduct, self>
+     * @return BelongsTo<TicketProduct, $this>
      */
     public function product(): BelongsTo
     {
@@ -53,7 +53,7 @@ final class TicketAllocation extends Model
     }
 
     /**
-     * @return BelongsTo<Draw, self>
+     * @return BelongsTo<Draw, $this>
      */
     public function draw(): BelongsTo
     {
@@ -63,7 +63,7 @@ final class TicketAllocation extends Model
     /**
      * The member stamps: units this allocation currently holds.
      *
-     * @return HasMany<TicketInventoryItem, self>
+     * @return HasMany<TicketInventoryItem, $this>
      */
     public function items(): HasMany
     {

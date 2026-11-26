@@ -16,30 +16,6 @@
 <div class="about-page" data-about-page data-locale="{{ e((string) ($page['locale'] ?? app()->getLocale())) }}">
     <a class="pp-skip-link" href="#about-main">{{ trans('public_pages.skip_to_content') }}</a>
 
-    <header class="about-header" role="banner">
-        <div class="about-shell about-header__inner">
-            <a class="about-brand" href="{{ route('home') }}" aria-label="{{ trans('about_page.brand_aria') }}">
-                <span class="about-brand__mark" aria-hidden="true"><span>TL</span></span>
-                <span class="about-brand__name">{{ config('app.name') }} <small>{{ trans('about_page.brand_subtitle') }}</small></span>
-            </a>
-            <nav class="about-nav" aria-label="{{ trans('about_page.nav_aria') }}">
-                <a href="{{ route('home') }}">{{ trans('about_page.nav_home') }}</a>
-                <a href="{{ route('results.index') }}">{{ trans('about_page.nav_results') }}</a>
-                <a href="{{ route('ticket-check') }}">{{ trans('about_page.nav_verify') }}</a>
-                <a href="{{ route('vision') }}">{{ trans('about_page.nav_vision') }}</a>
-                <a class="is-active" href="{{ route('about') }}" aria-current="page">{{ trans('about_page.nav_about') }}</a>
-                <a href="{{ route('contact') }}">{{ trans('about_page.nav_contact') }}</a>
-            </nav>
-            <div class="about-header__actions">
-                @auth
-                    <a class="about-button about-button--gold" href="{{ route('player.dashboard') }}">{{ trans('about_page.nav_dashboard') }}</a>
-                @else
-                    <a class="about-button about-button--quiet" href="{{ route('login') }}">{{ trans('about_page.nav_login') }}</a>
-                    <a class="about-button about-button--gold" href="{{ route('register') }}">{{ trans('about_page.nav_join') }}</a>
-                @endauth
-            </div>
-        </div>
-    </header>
 
     <div id="about-main" class="about-shell about-content" tabindex="-1">
         <section class="about-hero" aria-labelledby="about-hero-title">

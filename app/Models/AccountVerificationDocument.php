@@ -49,7 +49,7 @@ class AccountVerificationDocument extends KycDocument
     }
 
     /**
-     * @return BelongsTo<User, self>
+     * @return BelongsTo<User, $this>
      */
     public function owner(): BelongsTo
     {

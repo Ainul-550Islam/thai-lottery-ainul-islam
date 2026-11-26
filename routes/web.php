@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Http\Controllers\AccountGradeController;
+use App\Http\Controllers\Admin\IpAccessRuleController;
 use App\Http\Controllers\Admin\LottoFinExecutiveDashboardController;
 use App\Http\Controllers\Admin\PayoutApprovalIntakeController;
 use App\Http\Controllers\Admin\PayoutEvidenceController;
@@ -25,6 +26,7 @@ use App\Http\Controllers\Legal\LegalConsentController;
 use App\Http\Controllers\LegacyRedirectController;
 use App\Http\Controllers\LotteryHubController;
 use App\Http\Controllers\LotteryPurchasePageController;
+use App\Http\Controllers\MemberRewardsController;
 use App\Http\Controllers\MetricsController;
 use App\Http\Controllers\NationalLotteryController;
 use App\Http\Controllers\NotificationCenterController;
@@ -41,7 +43,9 @@ use App\Http\Controllers\PublicPagesController;
 use App\Http\Controllers\PublicPrizeVerificationController;
 use App\Http\Controllers\PublicServicesPageController;
 use App\Http\Controllers\PublicVerificationController;
+use App\Http\Controllers\ReferralRedirectController;
 use App\Http\Controllers\ResultsController;
+use App\Http\Controllers\SecurityTxtController;
 use App\Http\Controllers\SitemapController;
 use App\Http\Controllers\Support\SupportPortalController;
 use App\Http\Controllers\Verification\AccountVerificationController as MemberAccountVerificationController;
@@ -94,6 +98,40 @@ Route::get('/up/health', [HealthController::class, 'health'])->name('health');
 Route::get('/up/ready', [HealthController::class, 'ready'])->name('health.ready');
 Route::get('/up/live', [HealthController::class, 'live'])->name('health.live');
 
+// RFC 9116 vulnerability-disclosure contact. Public, static text, no session data.
+// The web server must let `/.well-known/` through to PHP (no dotfile deny rule).
+Route::get('/.well-known/security.txt', SecurityTxtController::class)->name('security.txt');
+
+/*
+|--------------------------------------------------------------------------
+| BATCH 3 (additive): bare load-balancer probes
+|--------------------------------------------------------------------------
+|
+| GET /health/live and GET /health/ready, at the BARE path the deployment spec
+| names. They are registered here rather than in routes/api.php because that file
+| inherits the `api` prefix, which would produce /api/health/live — a URL that
+| looks right in a route:list and is wrong in a load-balancer config.
+|
+| WHY THE NAMES ARE `probe.*` AND NOT `health.*`
+| /up/live and /up/ready above already own `health.live` and `health.ready`. A
+| duplicate name does not error in Laravel; the later registration silently wins,
+| so url()->route('health.live') would start pointing at a different payload.
+| Naming them distinctly keeps the existing monitoring links pointing at the
+| payload they were written against.
+|
+| NO AUTH, THROTTLED
+| `throttle:api` only: a probe that needed a credential could not be called by the
+| load balancer, and an unthrottled public endpoint is a free amplification vector.
+| Neither probe writes anything (asserted in HealthCheckServiceTest).
+|
+*/
+Route::get('/health/live', [\App\Http\Controllers\Api\V1\PlayerHealthController::class, 'live'])
+    ->middleware('throttle:api')
+    ->name('probe.live');
+Route::get('/health/ready', [\App\Http\Controllers\Api\V1\PlayerHealthController::class, 'ready'])
+    ->middleware('throttle:api')
+    ->name('probe.ready');
+
 Route::middleware('guest')->group(function (): void {
     // PROMPT 3: the member auth surface (login / registration /
     // password recovery) is served by MemberAuthController — thin
@@ -119,13 +157,22 @@ Route::middleware('guest')->group(function (): void {
         ->middleware('throttle:password-reset')
         ->name('password.reset.attempt');
 
-    // Social login (Facebook, Twitter/X, Google+) — OAuth2 authorize + callback.
+    // Social login: Google only (OIDC code flow + PKCE). facebook/twitter stay closed in the controller.
     Route::get('/social/{provider}/redirect', [SocialAuthController::class, 'redirectToProvider'])
         ->where('provider', 'facebook|twitter|google')
+        ->middleware('throttle:social')
         ->name('social.redirect');
     Route::get('/social/{provider}/callback', [SocialAuthController::class, 'handleProviderCallback'])
         ->where('provider', 'facebook|twitter|google')
+        ->middleware('throttle:social')
         ->name('social.callback');
+
+    // New Google members: the minimum still required (referral, date of birth, 18+, Terms, Privacy).
+    Route::get('/social/google/confirm', [SocialAuthController::class, 'showGoogleConfirm'])
+        ->name('social.google.confirm');
+    Route::post('/social/google/confirm', [SocialAuthController::class, 'completeGoogleSignup'])
+        ->middleware(['throttle:register', 'ip-access', 'bot'])
+        ->name('social.google.complete');
 });
 
 Route::middleware(['auth', 'auth.session'])->group(function (): void {
@@ -179,9 +226,10 @@ Route::middleware(['auth', 'auth.session'])->group(function (): void {
         ->name('player.wallet.conversion.show');
 
     Route::get('/wallet/transfer/panel', [BalanceTransferController::class, 'panel'])->name('player.transfer.panel');
-    Route::match(['get', 'post'], '/wallet/transfer/quote', [BalanceTransferController::class, 'quote'])->name('player.transfer.quote');
+    Route::match(['get', 'post'], '/wallet/transfer/quote', [BalanceTransferController::class, 'quote'])->name('player.transfer.quote')
+        ->middleware('throttle:financial-critical');
     Route::post('/wallet/transfer', [BalanceTransferController::class, 'store'])
-        ->middleware(['active', 'adult', 'legal.current'])
+        ->middleware(['active', 'adult', 'legal.current', 'throttle:financial-critical'])
         ->name('player.transfer.store');
     Route::get('/wallet/transfers', [BalanceTransferController::class, 'index'])->name('player.transfer.index');
     Route::get('/wallet/transfers/{reference}', [BalanceTransferController::class, 'show'])
@@ -195,6 +243,10 @@ Route::middleware(['auth', 'auth.session'])->group(function (): void {
     Route::post('/deposit', [PlayerWebController::class, 'storeDeposit'])
         ->middleware(['active', 'throttle:deposit', 'adult', 'legal.current'])
         ->name('player.deposit.store');
+    Route::post('/deposit/status/{deposit}/proof', [PlayerWebController::class, 'submitDepositProof'])
+        ->where('deposit', '[A-Za-z0-9_\\-]{1,80}')
+        ->middleware(['active', 'throttle:deposit', 'adult', 'legal.current'])
+        ->name('player.deposit.proof');
 
     Route::get('/withdraw', [PlayerWebController::class, 'withdraw'])->name('player.withdraw');
     Route::get('/withdrawal/status/{withdrawal}', [PlayerWebController::class, 'withdrawalStatus'])
@@ -266,6 +318,37 @@ Route::middleware(['auth', 'auth.session'])->group(function (): void {
 });
 
 /*
+|---------------------------------------------------------------------------
+| Member rewards hub: coupons, loyalty points, testimonials, push tokens
+|---------------------------------------------------------------------------
+| Session-scoped only: MemberRewardsController reads $request->user() and accepts
+| no user id or wallet id. Coupon and loyalty redemption credit the member's
+| wallet, so they carry the same 18+ attestation and current-legal-consent gates
+| as every other money-moving member action; self-exclusion, per-day caps, row
+| locks and idempotency keys are enforced inside the services. The index route
+| name `member.rewards` is the one the controller redirects back to.
+*/
+Route::middleware(['auth', 'auth.session'])->group(function (): void {
+    Route::get('/member/rewards', [MemberRewardsController::class, 'index'])
+        ->name('member.rewards');
+    Route::post('/member/rewards/coupons/redeem', [MemberRewardsController::class, 'redeemCoupon'])
+        ->middleware(['active', 'throttle:10,1', 'adult', 'legal.current'])
+        ->name('member.rewards.coupons.redeem');
+    Route::post('/member/rewards/loyalty/redeem', [MemberRewardsController::class, 'redeemLoyalty'])
+        ->middleware(['active', 'throttle:10,1', 'adult', 'legal.current'])
+        ->name('member.rewards.loyalty.redeem');
+    Route::post('/member/rewards/testimonials', [MemberRewardsController::class, 'submitTestimonial'])
+        ->middleware(['active', 'throttle:5,1'])
+        ->name('member.rewards.testimonials.submit');
+    Route::post('/member/rewards/push', [MemberRewardsController::class, 'registerPushToken'])
+        ->middleware(['active', 'throttle:20,1'])
+        ->name('member.rewards.push.register');
+    Route::delete('/member/rewards/push', [MemberRewardsController::class, 'revokePushToken'])
+        ->middleware(['active', 'throttle:20,1'])
+        ->name('member.rewards.push.revoke');
+});
+
+/*
 |--------------------------------------------------------------------------
 | Public Home + supporting public pages (anonymous by design)
 |--------------------------------------------------------------------------
@@ -274,6 +357,15 @@ Route::middleware(['auth', 'auth.session'])->group(function (): void {
 */
 
 Route::get('/', [HomeController::class, 'index'])->name('home');
+
+// Agent referral landing (`/r/{code}`, the URL PublicReferralLinkService::publicUrlFor() builds).
+// Records one deduplicated visit, keeps the code in session + cookie and redirects to
+// /register?ref=CODE. Unknown, malformed or inactive codes redirect to a plain /register
+// inside the controller, so no error page and no open redirect. Throttled because every
+// accepted visit writes a row.
+Route::get('/r/{code}', ReferralRedirectController::class)
+    ->middleware('throttle:60,1')
+    ->name('referral.redirect');
 
 // Legacy aliases deliberately redirect into the authenticated canonical player
 // routes. They do not render a second wallet, deposit, withdrawal or dashboard
@@ -1255,6 +1347,20 @@ Route::prefix('admin')->name('admin.')->middleware(['admin.auth', 'auth.session'
         Route::get('/{payout}', [PlayerPrizeClaimReviewController::class, 'show'])->whereNumber('payout')->name('show');
         Route::post('/{payout}/decision', [PlayerPrizeClaimReviewController::class, 'decide'])->whereNumber('payout')->name('decide');
     });
+
+    // IP access rule inventory and lifecycle. URL/name contract comes from
+    // resources/views/admin/ip-access-rules.blade.php (admin.ip-access.rules.index|store|revoke)
+    // and tests/browser/ip-rule-management*.cjs (/admin/ip-access/rules[/manage|/{id}/revoke]).
+    // Default-deny: the controller answers 503 until ip_access.management_enabled is true and
+    // re-authorizes the actor against the dedicated `manage ip access rules` permission on every
+    // request, so the admin gate above is only the floor. Rules are revoked, never hard-deleted.
+    // POSTs are CSRF-protected by `web`.
+    Route::prefix('ip-access/rules')->name('ip-access.rules.')->middleware('throttle:admin-analytics')->group(function (): void {
+        Route::get('/manage', [IpAccessRuleController::class, 'manage'])->name('manage');
+        Route::get('/', [IpAccessRuleController::class, 'index'])->name('index');
+        Route::post('/', [IpAccessRuleController::class, 'store'])->name('store');
+        Route::post('/{ruleId}/revoke', [IpAccessRuleController::class, 'revoke'])->whereNumber('ruleId')->name('revoke');
+    });
 });
 
 /*
@@ -1380,3 +1486,6 @@ Route::prefix('admin/chat/canned')->name('admin.chat.canned.')->middleware(['aut
 Route::match(['get', 'post'], '/{legacyPath}', [LegacyRedirectController::class, 'resolve'])
     ->where('legacyPath', '.*\.php$')
     ->name('legacy.redirect');
+
+
+

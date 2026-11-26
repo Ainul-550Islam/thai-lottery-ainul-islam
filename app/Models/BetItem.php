@@ -81,7 +81,7 @@ class BetItem extends Model
     }
 
     /**
-     * @return BelongsTo<Bet, self>
+     * @return BelongsTo<Bet, $this>
      */
     public function bet(): BelongsTo
     {

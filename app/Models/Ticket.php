@@ -85,7 +85,7 @@ class Ticket extends Model
     }
 
     /**
-     * @return BelongsTo<User, self>
+     * @return BelongsTo<User, $this>
      */
     public function user(): BelongsTo
     {
@@ -93,7 +93,7 @@ class Ticket extends Model
     }
 
     /**
-     * @return BelongsTo<Draw, self>
+     * @return BelongsTo<Draw, $this>
      */
     public function draw(): BelongsTo
     {
@@ -101,7 +101,7 @@ class Ticket extends Model
     }
 
     /**
-     * @return HasMany<Bet>
+     * @return HasMany<Bet, $this>
      */
     public function bets(): HasMany
     {
@@ -124,7 +124,7 @@ class Ticket extends Model
      * The payouts table carries a nullable ticket_id foreign key, so the
      * relationship is a plain one-to-many on that column.
      *
-     * @return HasMany<Payout>
+     * @return HasMany<Payout, $this>
      */
     public function payouts(): HasMany
     {

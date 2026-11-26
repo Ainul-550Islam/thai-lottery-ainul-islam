@@ -1,6 +1,7 @@
 <?php
 
 use App\Enums\GloPrizeTier;
+use App\Support\Config\StrictBoolean;
 
 /*
 |--------------------------------------------------------------------------
@@ -238,6 +239,41 @@ return [
         'full_sale_units' => '1000000',
         'full_allocation' => '48000000.00',
         'total_prize_count' => 14168,
+
+        /*
+        |------------------------------------------------------------------
+        | L6 purchase admission (GloL6PurchaseCapabilityService)
+        |------------------------------------------------------------------
+        |
+        | Every key in this block was already being read by the capability
+        | service with an inline fallback, but NONE of them existed in this
+        | file. `config('glo.l6.purchase.enabled', false)` was therefore
+        | answering from its own default: the ticket-selling switch was
+        | CLOSED BY ACCIDENT rather than by decision, invisible to an
+        | operator and invisible to an audit.
+        |
+        | Declared here with exactly the values the service already fell
+        | back to, so runtime behaviour does not change — only the ability
+        | to see, set and audit it does.
+        |
+        | `enabled` is parsed strictly: GLO_L6_PURCHASE_ENABLED must be
+        | written as exactly `true` or exactly `false`. `yes`, `1`, `on`, a
+        | blank value or a missing line all leave ticket sales CLOSED,
+        | because issuing a ticket is a wager and a wager moves real money.
+        | The remaining keys are contract parameters, not switches, so they
+        | are declared as literals and are not environment-addressable.
+        */
+        'purchase' => [
+            'enabled' => StrictBoolean::orClosed(env('GLO_L6_PURCHASE_ENABLED')),
+
+            'require_official_result_source' => true,
+            'inventory_provider_mode' => 'not_configured',
+            'custodian_provider_ref' => '',
+            'require_seated_inventory' => true,
+            'require_legal_publications' => true,
+            'pricing_rule_version' => 'glo-l6-2026.1',
+            'reservation_ttl_seconds' => 300,
+        ],
     ],
 
     /*

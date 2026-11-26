@@ -88,10 +88,10 @@ enum PrivacyRequestType: string
      */
     public static function values(): array
     {
-        return array_values(array_map(
+        return array_map(
             static fn (self $type): string => $type->value,
             self::cases(),
-        ));
+        );
     }
 
     /**
@@ -125,9 +125,9 @@ enum PrivacyRequestType: string
      */
     public static function acceptedValues(): array
     {
-        return array_values(array_map(
+        return array_map(
             static fn (self $type): string => $type->value,
             self::accepted(),
-        ));
+        );
     }
 }

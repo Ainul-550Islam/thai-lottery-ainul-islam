@@ -37,6 +37,7 @@ use Illuminate\Support\Carbon;
  */
 class TicketProduct extends Model
 {
+    /** @use HasFactory<\Database\Factories\TicketProductFactory> */
     use HasFactory;
     use SoftDeletes;
 
@@ -86,7 +87,7 @@ class TicketProduct extends Model
     /**
      * The draw this product is offered against.
      *
-     * @return BelongsTo<Draw, self>
+     * @return BelongsTo<Draw, $this>
      */
     public function draw(): BelongsTo
     {

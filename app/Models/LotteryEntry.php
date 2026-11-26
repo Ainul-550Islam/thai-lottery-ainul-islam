@@ -42,11 +42,13 @@ class LotteryEntry extends Model
         'placed_at' => 'datetime',
     ];
 
+    /** @return BelongsTo<Draw, $this> */
     public function draw(): BelongsTo
     {
         return $this->belongsTo(Draw::class, 'draw_id', 'id');
     }
 
+    /** @return HasOne<Payout, $this> */
     public function payout(): HasOne
     {
         return $this->hasOne(Payout::class, 'lottery_entry_id', 'id');

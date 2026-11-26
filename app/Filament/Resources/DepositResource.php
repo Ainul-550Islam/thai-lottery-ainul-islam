@@ -13,6 +13,7 @@ use App\Models\Deposit;
 use App\Services\Finance\DepositApprovalService;
 use App\Services\Finance\DepositCompletionService;
 use App\Support\Admin\AdminAccess;
+use App\Support\Admin\AdminPermission;
 use App\Support\Admin\AdminFormat;
 use Filament\Forms\Form;
 use Filament\Infolists;
@@ -65,9 +66,9 @@ class DepositResource extends Resource
 
     public static function canViewAny(): bool
     {
-        return AdminAccess::currentAny([
-            AdminAccess::VIEW_TRANSACTION_HISTORY,
-            AdminAccess::MANAGE_PAYOUTS,
+        return AdminAccess::permitsAny([
+            AdminPermission::DEPOSITS_VIEW,
+            AdminPermission::DEPOSITS_REVIEW,
         ]);
     }
 
@@ -232,7 +233,7 @@ class DepositResource extends Resource
                     ->icon('heroicon-m-check-badge')
                     ->button()
                     ->outlined()
-                    ->visible(fn (): bool => AdminAccess::current(AdminAccess::MANAGE_PAYOUTS)),
+                    ->visible(fn (): bool => AdminAccess::permitsAny([AdminPermission::DEPOSITS_REVIEW, AdminPermission::DEPOSITS_APPROVE])),
             ])
             ->bulkActions([])
             ->emptyStateHeading('No deposits')

@@ -9,6 +9,7 @@ use App\Enums\LimitStatus;
 use App\Filament\Resources\NumberLimitResource;
 use App\Models\NumberLimit;
 use App\Support\Admin\AdminAccess;
+use App\Support\Admin\AdminPermission;
 use App\Support\Admin\AdminFormat;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Tables;
@@ -60,7 +61,7 @@ class NumberLimitsRelationManager extends RelationManager
 
     public static function canViewForRecord($ownerRecord, string $pageClass): bool
     {
-        return AdminAccess::currentAny(NumberLimitResource::READ_PERMISSIONS);
+        return AdminAccess::permitsAny(NumberLimitResource::READ_PERMISSIONS);
     }
 
     public function table(Table $table): Table

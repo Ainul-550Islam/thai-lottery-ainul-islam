@@ -50,7 +50,9 @@ final class GloL6PurchaseCapabilityService
         $isProduction = app()->environment('production');
         // Do not treat a mis-typed truthy string as authority to sell tickets.
         $realMoneyEnabled = app(\App\Services\Compliance\RealMoneyGate::class)->isOpen();
-        $purchaseEnabled = (bool) config('glo.l6.purchase.enabled', false);
+        // `=== true`, not `(bool)`: a mis-typed config override such as the
+        // string 'yes' must never become authority to sell a ticket.
+        $purchaseEnabled = config('glo.l6.purchase.enabled', false) === true;
 
         $officialSourceReady = $this->isOfficialResultSourceReady($isProduction);
         $inventoryProviderReady = $this->isInventoryProviderReady($isProduction);
@@ -128,7 +130,7 @@ final class GloL6PurchaseCapabilityService
 
     private function isOfficialResultSourceReady(bool $isProduction): bool
     {
-        $requireOfficial = (bool) config('glo.l6.purchase.require_official_result_source', true);
+        $requireOfficial = config('glo.l6.purchase.require_official_result_source', true) !== false;
 
         if (! $requireOfficial && ! $isProduction) {
             return true;
@@ -171,7 +173,7 @@ final class GloL6PurchaseCapabilityService
 
     private function isSeatedDrawInventoryReady(?Draw $draw, ?int $series): bool
     {
-        $requireSeated = (bool) config('glo.l6.purchase.require_seated_inventory', true);
+        $requireSeated = config('glo.l6.purchase.require_seated_inventory', true) !== false;
         if (! $requireSeated) {
             return true;
         }
@@ -220,7 +222,7 @@ final class GloL6PurchaseCapabilityService
             return false;
         }
 
-        if (! (bool) config('glo.l6.purchase.require_legal_publications', true)) {
+        if (config('glo.l6.purchase.require_legal_publications', true) === false) {
             return true;
         }
 

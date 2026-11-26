@@ -15,6 +15,8 @@ use App\Jobs\ExpireUnclaimedPrizesJob;
 use App\Jobs\ExpireWalletReservationsJob;
 use App\Jobs\GeneratePayoutBatchJob;
 use App\Jobs\GeneratePayoutStatementJob;
+use App\Jobs\LotteryGames\GenerateGameDrawsJob;
+use App\Jobs\LotteryGames\ImportGameResultsJob;
 use App\Jobs\ReassessAmlRiskJob;
 use App\Jobs\ReconcilePaymentProviderJob;
 use App\Jobs\ReconcileWalletLedgersJob;
@@ -53,6 +55,11 @@ Artisan::command('inspire', function (): void {
 
 // Core draw cadence is registered in bootstrap/app.php; periodic guard audit is scheduled here.
 Schedule::command('settlement:verify-guards')->everySixHours()->withoutOverlapping()->onOneServer();
+
+// Scheduler liveness: ops:health reads the timestamp this writes (HeartbeatCommand).
+// No onOneServer()/withoutOverlapping() on purpose: both lock through the cache store,
+// and a heartbeat that needs Redis cannot tell "scheduler dead" from "Redis down".
+Schedule::command('ops:heartbeat')->everyMinute()->name('ops-heartbeat');
 Schedule::command('stripe-followups:sweep')
     ->everyMinute()
     ->name('stripe-followup-routing-sweep')
@@ -324,5 +331,80 @@ Schedule::command('privacy:sla-check')
 Schedule::command('glo:fetch-official')
     ->everyFifteenMinutes()
     ->name('glo-official-result-fetch')
+    ->withoutOverlapping()
+    ->onOneServer();
+
+/*
+|--------------------------------------------------------------------------
+| Batch 2 — digit-game lanes
+|--------------------------------------------------------------------------
+|
+| generate-draws runs once a day (draws are materialised ahead, so a missed run
+| is not a missed draw), and import-results polls every minute because a result
+| that arrives is worth having within the minute.
+|
+| BOTH ARE GATED ON THE FRAMEWORK MASTER SWITCH. With
+| config('lottery_games.master_enabled') false — the default — neither job is
+| registered at all, rather than registered-and-returning-early: a task that
+| exists but does nothing is indistinguishable in `schedule:list` from one that
+| is meant to be working, and that ambiguity is how an unconfigured lane looks
+| healthy for a week.
+|
+*/
+if ((bool) config('lottery_games.master_enabled', false) === true) {
+    Schedule::job(new GenerateGameDrawsJob(null, 7))
+        ->dailyAt('00:10')
+        ->name('lottery-games-generate-draws')
+        ->withoutOverlapping()
+        ->onOneServer();
+
+    Schedule::job(new ImportGameResultsJob(null))
+        ->everyMinute()
+        ->name('lottery-games-import-results')
+        ->withoutOverlapping()
+        ->onOneServer();
+}
+
+/*
+|--------------------------------------------------------------------------
+| BATCH 3 — PLAYER EXPERIENCE (additive schedule entries)
+|--------------------------------------------------------------------------
+|
+| Three entries (ops:heartbeat is scheduled near the top of this file), all idempotent, all safe to run more than once, all registered
+| here rather than in bootstrap/app.php because this file is already the place a
+| reader looks to answer "what runs and when". Adding them to the second
+| schedule source would deepen a duplication this repository already has.
+|
+| WHY THE HEARTBEAT IS EVERY MINUTE
+| /health/ready reports NOT_READY when the heartbeat is older than
+| config('player_experience.health.scheduler_stale_seconds'). A per-minute stamp
+| against a three-minute staleness window means a single missed tick is not an
+| outage alarm, but three consecutive misses are — which is the right sensitivity
+| for a cron that is supposed to run constantly.
+|
+*/
+
+// One balance snapshot per wallet per day, after the day's money has settled.
+// Idempotent by unique key, so a retry or a manual run is harmless.
+Schedule::command('wallet:snapshot-balances')
+    ->dailyAt('00:35')
+    ->name('wallet-snapshot-balances')
+    ->withoutOverlapping()
+    ->onOneServer();
+
+// Read-only ledger-vs-wallet sweep. Exit code 1 on a discrepancy, which is what an
+// alerting wrapper reads. It NEVER corrects anything: see
+// docs/ops/RUNBOOK_ledger_mismatch.md.
+Schedule::command('ledger:verify')
+    ->dailyAt('03:10')
+    ->name('ledger-verify')
+    ->withoutOverlapping()
+    ->onOneServer();
+
+// Draft slips whose clock ran out. Keeps the status column agreeing with reality
+// for members who never came back to their basket.
+Schedule::command('bet-slips:expire')
+    ->hourly()
+    ->name('bet-slip-expiry')
     ->withoutOverlapping()
     ->onOneServer();

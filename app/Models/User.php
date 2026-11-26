@@ -128,7 +128,7 @@ class User extends Authenticatable implements FilamentUser, MustVerifyEmailContr
     /**
      * The primary spendable wallet of the user.
      *
-     * @return HasOne<Wallet>
+     * @return HasOne<Wallet, $this>
      */
     public function wallet(): HasOne
     {
@@ -137,7 +137,7 @@ class User extends Authenticatable implements FilamentUser, MustVerifyEmailContr
     }
 
     /**
-     * @return HasMany<Wallet>
+     * @return HasMany<Wallet, $this>
      */
     public function wallets(): HasMany
     {
@@ -145,7 +145,7 @@ class User extends Authenticatable implements FilamentUser, MustVerifyEmailContr
     }
 
     /**
-     * @return HasMany<Bet>
+     * @return HasMany<Bet, $this>
      */
     public function bets(): HasMany
     {
@@ -153,7 +153,7 @@ class User extends Authenticatable implements FilamentUser, MustVerifyEmailContr
     }
 
     /**
-     * @return HasMany<Ticket>
+     * @return HasMany<Ticket, $this>
      */
     public function tickets(): HasMany
     {
@@ -161,7 +161,7 @@ class User extends Authenticatable implements FilamentUser, MustVerifyEmailContr
     }
 
     /**
-     * @return HasMany<Payout>
+     * @return HasMany<Payout, $this>
      */
     public function payouts(): HasMany
     {
@@ -169,7 +169,7 @@ class User extends Authenticatable implements FilamentUser, MustVerifyEmailContr
     }
 
     /**
-     * @return HasMany<Deposit>
+     * @return HasMany<Deposit, $this>
      */
     public function deposits(): HasMany
     {
@@ -177,7 +177,7 @@ class User extends Authenticatable implements FilamentUser, MustVerifyEmailContr
     }
 
     /**
-     * @return HasMany<Withdrawal>
+     * @return HasMany<Withdrawal, $this>
      */
     public function withdrawals(): HasMany
     {
@@ -185,7 +185,7 @@ class User extends Authenticatable implements FilamentUser, MustVerifyEmailContr
     }
 
     /**
-     * @return HasMany<FinancialTransaction>
+     * @return HasMany<FinancialTransaction, $this>
      */
     public function financialTransactions(): HasMany
     {
@@ -193,7 +193,7 @@ class User extends Authenticatable implements FilamentUser, MustVerifyEmailContr
     }
 
     /**
-     * @return HasOne<Agent>
+     * @return HasOne<Agent, $this>
      */
     public function agent(): HasOne
     {
@@ -203,7 +203,7 @@ class User extends Authenticatable implements FilamentUser, MustVerifyEmailContr
     /**
      * Every KYC document the player has ever submitted, in any status.
      *
-     * @return HasMany<KycDocument>
+     * @return HasMany<KycDocument, $this>
      */
     public function kycDocuments(): HasMany
     {
@@ -211,7 +211,7 @@ class User extends Authenticatable implements FilamentUser, MustVerifyEmailContr
     }
 
     /**
-     * @return HasMany<AuditLog>
+     * @return HasMany<AuditLog, $this>
      */
     public function auditLogs(): HasMany
     {
@@ -239,7 +239,7 @@ class User extends Authenticatable implements FilamentUser, MustVerifyEmailContr
      * The player's responsible-gaming record (deposit / wager / single-bet
      * limits and self-exclusion window), when one has ever been set.
      *
-     * @return HasOne<ResponsibleGamingLimit, self>
+     * @return HasOne<ResponsibleGamingLimit, $this>
      */
     public function responsibleGamingLimit(): HasOne
     {
@@ -247,7 +247,7 @@ class User extends Authenticatable implements FilamentUser, MustVerifyEmailContr
     }
 
     /**
-     * @return HasOne<AgeVerification, self>
+     * @return HasOne<AgeVerification, $this>
      */
     public function ageVerification(): HasOne
     {
@@ -255,7 +255,7 @@ class User extends Authenticatable implements FilamentUser, MustVerifyEmailContr
     }
 
     /**
-     * @return HasMany<UserConsent, self>
+     * @return HasMany<UserConsent, $this>
      */
     public function consents(): HasMany
     {
@@ -417,5 +417,45 @@ class User extends Authenticatable implements FilamentUser, MustVerifyEmailContr
     public function scopeOfStatus(Builder $query, UserStatus $status): Builder
     {
         return $query->where('status', $status);
+    }
+
+    /**
+     * @return HasMany<CashbackAccrual, self>
+     */
+    public function cashbackAccruals(): HasMany
+    {
+        return $this->hasMany(CashbackAccrual::class, 'member_id');
+    }
+
+    /**
+     * @return HasMany<RewardClaim, self>
+     */
+    public function rewardClaims(): HasMany
+    {
+        return $this->hasMany(RewardClaim::class, 'member_id');
+    }
+
+    /**
+     * @return HasMany<FreeBetVoucher, self>
+     */
+    public function freeBetVouchers(): HasMany
+    {
+        return $this->hasMany(FreeBetVoucher::class, 'member_id');
+    }
+
+    /**
+     * @return HasMany<MemberBankAccount, self>
+     */
+    public function bankAccounts(): HasMany
+    {
+        return $this->hasMany(MemberBankAccount::class, 'member_id');
+    }
+
+    /**
+     * @return HasMany<LoginEvent, self>
+     */
+    public function loginEvents(): HasMany
+    {
+        return $this->hasMany(LoginEvent::class, 'member_id');
     }
 }

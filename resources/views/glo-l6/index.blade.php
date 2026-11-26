@@ -175,6 +175,4 @@
         </section>
     </main>
 </div>
-
-<x-public-page.footer />
 @endsection

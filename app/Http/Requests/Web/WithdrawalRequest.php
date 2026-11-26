@@ -76,6 +76,13 @@ final class WithdrawalRequest extends FormRequest
         } elseif (in_array($method, [PaymentMethod::Bkash->value, PaymentMethod::Nagad->value], true)) {
             $rules['account_number'] = ['required', 'string', 'regex:/\A01[3-9][0-9]{8}\z/D'];
             $rules['bank_name'] = ['prohibited'];
+        } elseif ($method === PaymentMethod::Crypto->value) {
+            // Crypto remains an unsupported withdrawal rail, but validate its
+            // destination syntax as well as returning the authoritative method
+            // refusal. This avoids accepting or echoing malformed destination
+            // material merely because the rail is disabled.
+            $rules['account_number'] = ['required', 'string', 'regex:/\A(?:0x[a-fA-F0-9]{40}|T[1-9A-HJ-NP-Za-km-z]{33})\z/D'];
+            $rules['bank_name'] = ['prohibited'];
         } else {
             $rules['account_number'] = ['required', 'string', 'max:255'];
         }

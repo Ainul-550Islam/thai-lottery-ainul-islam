@@ -76,6 +76,26 @@ class HeartbeatCommand extends Command
 
         @chmod($path, 0660);
 
+        /*
+         * BATCH 3 (additive): ALSO STAMP THE READINESS PROBE'S KEY.
+         *
+         * The file above is what `ops:health` reads, and it stays exactly as it
+         * was: same path, same format, same exit codes. /health/ready reads a
+         * cache key instead, because the readiness probe runs behind a load
+         * balancer on every instance and must not depend on a shared filesystem.
+         *
+         * One command, two readers. The alternative was a second command with the
+         * same name (which PHP refuses to load) or a second command with a
+         * different name that operators would forget to schedule - and a
+         * heartbeat that nobody schedules is the incident this command exists to
+         * detect.
+         *
+         * If the cache store is down, the cache write throws and this command
+         * fails loudly. That is deliberate: the file was already written, but a
+         * heartbeat nobody can read is not a heartbeat.
+         */
+        app(\App\Services\Ops\SchedulerHeartbeat::class)->beat();
+
         if ($this->output->isVerbose()) {
             $this->components->info('Scheduler heartbeat recorded at '.gmdate('c').'.');
         }

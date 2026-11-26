@@ -74,6 +74,7 @@ class Withdrawal extends Model
         'reference_number',
         'user_id',
         'wallet_id',
+        'member_bank_account_id',
         'method',
         'provider',
         'provider_reference',
@@ -130,7 +131,7 @@ class Withdrawal extends Model
     }
 
     /**
-     * @return BelongsTo<User, self>
+     * @return BelongsTo<User, $this>
      */
     public function user(): BelongsTo
     {
@@ -138,7 +139,7 @@ class Withdrawal extends Model
     }
 
     /**
-     * @return BelongsTo<Wallet, self>
+     * @return BelongsTo<Wallet, $this>
      */
     public function wallet(): BelongsTo
     {
@@ -146,7 +147,7 @@ class Withdrawal extends Model
     }
 
     /**
-     * @return BelongsTo<FinancialTransaction, self>
+     * @return BelongsTo<FinancialTransaction, $this>
      */
     public function financialTransaction(): BelongsTo
     {
@@ -156,7 +157,7 @@ class Withdrawal extends Model
     /**
      * The administrator who reviewed the request.
      *
-     * @return BelongsTo<User, self>
+     * @return BelongsTo<User, $this>
      */
     public function reviewer(): BelongsTo
     {
@@ -166,7 +167,7 @@ class Withdrawal extends Model
     /**
      * The gateway attempt that sends the money out.
      *
-     * @return MorphOne<Payment>
+     * @return MorphOne<Payment, $this>
      */
     public function payment(): MorphOne
     {
@@ -174,7 +175,7 @@ class Withdrawal extends Model
     }
 
     /**
-     * @return MorphMany<Payment>
+     * @return MorphMany<Payment, $this>
      */
     public function payments(): MorphMany
     {
@@ -184,7 +185,7 @@ class Withdrawal extends Model
     /**
      * Ledger entries that reference this withdrawal polymorphically.
      *
-     * @return MorphMany<LedgerEntry>
+     * @return MorphMany<LedgerEntry, $this>
      */
     public function ledgerEntries(): MorphMany
     {
@@ -262,5 +263,13 @@ class Withdrawal extends Model
     public function scopeByReferenceNumber(Builder $query, string $reference): Builder
     {
         return $query->where('reference_number', $reference);
+    }
+
+    /**
+     * @return BelongsTo<MemberBankAccount, self>
+     */
+    public function memberBankAccount(): BelongsTo
+    {
+        return $this->belongsTo(MemberBankAccount::class, 'member_bank_account_id');
     }
 }

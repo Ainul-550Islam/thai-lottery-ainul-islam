@@ -6,6 +6,7 @@ namespace App\Filament\Resources\NumberLimitResource\Pages;
 
 use App\Filament\Resources\NumberLimitResource;
 use App\Support\Admin\AdminAccess;
+use App\Support\Admin\AdminPermission;
 use Filament\Actions;
 use Filament\Resources\Pages\ListRecords;
 
@@ -37,7 +38,7 @@ class ListNumberLimits extends ListRecords
         return [
             Actions\CreateAction::make()
                 ->label('New number limit')
-                ->visible(fn (): bool => AdminAccess::current(AdminAccess::MANAGE_RISK_LIMITS)),
+                ->visible(fn (): bool => AdminAccess::permits(AdminPermission::RISK_LIMITS_MANAGE)),
         ];
     }
 }

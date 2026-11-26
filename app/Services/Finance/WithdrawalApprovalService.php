@@ -105,6 +105,10 @@ final class WithdrawalApprovalService
             app(\App\Services\Payment\WithdrawalProviderAccountService::class)->assertActive($current);
             $this->assertNotAlreadySettled($current);
 
+            if ($reviewerUserId !== null && $reviewerUserId === (int) $current->user_id) {
+                throw \App\Exceptions\FinancialException::withCode('withdrawal_self_approval_refused', 'A withdrawal cannot be approved by the player who requested it.');
+            }
+
             if ($current->status->holdsReservedFunds()) {
                 throw WithdrawalException::alreadyReserved($current->id, $current->status);
             }

@@ -7,6 +7,7 @@ namespace App\Filament\Widgets;
 use App\Enums\WalletConversionStatus;
 use App\Models\WalletConversion;
 use App\Support\Admin\AdminAccess;
+use App\Support\Admin\AdminPermission;
 use App\Support\Admin\AdminFormat;
 use Filament\Widgets\StatsOverviewWidget;
 use Filament\Widgets\StatsOverviewWidget\Stat;
@@ -42,10 +43,11 @@ class ConversionVolumeWidget extends StatsOverviewWidget
 
     public static function canView(): bool
     {
-        return AdminAccess::currentAny([
-            AdminAccess::VIEW_TRANSACTION_HISTORY,
-            AdminAccess::VIEW_FINANCIAL_REPORTS,
-            AdminAccess::MANAGE_WALLET,
+        return AdminAccess::permitsAny([
+            AdminPermission::PAYMENTS_VIEW,
+            AdminPermission::LEDGER_VIEW,
+            AdminPermission::REPORTS_VIEW,
+            AdminPermission::WALLETS_ADJUST,
         ]);
     }
 

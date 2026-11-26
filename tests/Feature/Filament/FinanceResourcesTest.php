@@ -269,16 +269,16 @@ final class FinanceResourcesTest extends TestCase
             ->assertTableActionHidden('approve', record: $confirmed);
     }
 
-    public function test_deposit_complete_is_offered_only_after_approval(): void
+    public function test_deposit_actions_have_no_free_text_complete_but_keep_the_verified_manual_wallet_settlement(): void
     {
-        $pending = $this->pendingDeposit();
-        $approved = $this->approvedDeposit();
+        $names = array_column(DepositDecisionActions::specs(), 'name');
 
-        Livewire::actingAs($this->operator())
-            ->test(ListDeposits::class, ['activeTab' => 'all'])
-            ->assertTableActionHidden('complete', record: $pending)
-            ->assertTableActionVisible('complete', record: $approved);
+        $this->assertNotContains('complete', $names, 'A typed reference must not be able to credit a wallet.');
+        $this->assertContains('settleManualWallet', $names, 'The manual bKash/Nagad TrxID settlement action was lost.');
+        $this->assertContains('approve', $names);
+        $this->assertContains('reject', $names);
     }
+
 
     public function test_approving_a_deposit_delegates_to_the_service(): void
     {
@@ -323,41 +323,6 @@ final class FinanceResourcesTest extends TestCase
         $this->assertSame('no matching payment on the provider statement', $fresh->failure_reason);
     }
 
-    public function test_completing_a_deposit_credits_the_wallet_through_the_service(): void
-    {
-        $wallet = $this->wallet('0.00');
-        $deposit = $this->approvedDeposit($wallet);
-
-        Livewire::actingAs($this->operator())
-            ->test(ViewDeposit::class, ['record' => $deposit->getKey()])
-            ->callAction('complete', data: ['provider_reference' => $deposit->provider_reference])
-            ->assertHasNoActionErrors();
-
-        $fresh = $deposit->fresh();
-
-        $this->assertSame(DepositStatus::Confirmed, $fresh->status);
-        $this->assertNotNull($fresh->financial_transaction_id, 'Completion posted no financial transaction.');
-        $this->assertSame('500.00', (string) $wallet->fresh()->balance);
-    }
-
-    public function test_panel_requires_a_statement_reference_before_crediting(): void
-    {
-        $wallet = $this->wallet('0.00');
-        $pending = app(DepositService::class)->request(
-            $wallet, $this->money('500.00'), PaymentMethod::Manual, 'panel-no-reference-'.uniqid('', true),
-        );
-        $deposit = app(DepositApprovalService::class)->approve($pending, null, 'fixture')['deposit'];
-
-        Livewire::actingAs($this->operator())
-            ->test(ViewDeposit::class, ['record' => $deposit->getKey()])
-            ->callAction('complete', data: ['provider_reference' => ''])
-            ->assertHasActionErrors(['provider_reference']);
-
-        $this->assertSame(DepositStatus::Approved, $deposit->fresh()->status);
-        $this->assertSame('0.00', (string) $wallet->fresh()->balance);
-        $this->assertSame(0, FinancialTransaction::query()->where('wallet_id', $wallet->getKey())->count());
-    }
-
     public function test_approving_an_already_approved_deposit_surfaces_the_refusal_not_a_500(): void
     {
         $deposit = $this->pendingDeposit();
@@ -378,24 +343,6 @@ final class FinanceResourcesTest extends TestCase
 
         $this->assertSame(DepositStatus::Approved, $fresh->status, 'A stale screen must not re-approve.');
         $this->assertSame('the other operator', app(DepositApprovalService::class)->decisionTrail($fresh)['note'] ?? null);
-    }
-
-    public function test_completing_an_already_credited_deposit_reports_the_replay_and_credits_nothing(): void
-    {
-        $wallet = $this->wallet('0.00');
-        $deposit = $this->approvedDeposit($wallet);
-
-        $page = Livewire::actingAs($this->operator())
-            ->test(ViewDeposit::class, ['record' => $deposit->getKey()]);
-
-        app(DepositCompletionService::class)->complete($deposit->fresh());
-
-        $page->callAction('complete', data: ['provider_reference' => $deposit->provider_reference])
-            ->assertHasNoActionErrors()
-            ->assertNotified();
-
-        $this->assertSame('500.00', (string) $wallet->fresh()->balance, 'The deposit was credited twice.');
-        $this->assertSame(1, FinancialTransaction::query()->where('wallet_id', $wallet->getKey())->count());
     }
 
     // -------------------------------------------------------------------------
@@ -766,103 +713,13 @@ final class FinanceResourcesTest extends TestCase
         $this->assertSame(WalletStatus::Active, $wallet->fresh()->status);
     }
 
-    public function test_adjustment_rejects_anything_that_is_not_a_plain_decimal_string(): void
+    public function test_wallet_controls_are_lock_and_unlock_only(): void
     {
-        $wallet = $this->wallet('100.00');
+        $names = array_column(WalletControlActions::specs(), 'name');
 
-        foreach (['1e3', 'abc', '10.005', '-50', '1,000', ' 50 ', ''] as $bad) {
-            Livewire::actingAs($this->operator())
-                ->test(ViewWallet::class, ['record' => $wallet->getKey()])
-                ->callAction('adjustBalance', data: [
-                    'direction' => 'credit',
-                    'amount' => $bad,
-                    'reason' => 'testing the amount guard',
-                ])
-                ->assertHasActionErrors(['amount']);
-        }
-
-        $this->assertSame('100.00', (string) $wallet->fresh()->balance);
-        $this->assertSame(0, FinancialTransaction::query()->count());
+        $this->assertSame(['lockWallet', 'unlockWallet'], array_values($names), 'No balance-editing action may exist on the wallet screen.');
     }
 
-    public function test_adjustment_requires_a_reason(): void
-    {
-        $wallet = $this->wallet('100.00');
-
-        Livewire::actingAs($this->operator())
-            ->test(ViewWallet::class, ['record' => $wallet->getKey()])
-            ->callAction('adjustBalance', data: [
-                'direction' => 'credit',
-                'amount' => '50.00',
-                'reason' => '',
-            ])
-            ->assertHasActionErrors(['reason']);
-
-        $this->assertSame('100.00', (string) $wallet->fresh()->balance);
-    }
-
-    public function test_crediting_a_wallet_posts_through_the_wallet_service(): void
-    {
-        $wallet = $this->wallet('100.00');
-
-        Livewire::actingAs($this->operator())
-            ->test(ViewWallet::class, ['record' => $wallet->getKey()])
-            ->callAction('adjustBalance', data: [
-                'direction' => 'credit',
-                'amount' => '25.50',
-                'reason' => 'goodwill credit agreed with support',
-            ])
-            ->assertHasNoActionErrors();
-
-        $this->assertSame('125.50', (string) $wallet->fresh()->balance);
-
-        $transaction = FinancialTransaction::query()->where('wallet_id', $wallet->getKey())->sole();
-
-        $this->assertSame('25.50', (string) $transaction->amount);
-        $this->assertSame(2, $transaction->ledgerEntries()->count(), 'An adjustment must post a balanced pair.');
-    }
-
-    public function test_debiting_more_than_the_balance_surfaces_the_refusal_not_a_500(): void
-    {
-        $wallet = $this->wallet('10.00');
-
-        Livewire::actingAs($this->operator())
-            ->test(ViewWallet::class, ['record' => $wallet->getKey()])
-            ->callAction('adjustBalance', data: [
-                'direction' => 'debit',
-                'amount' => '5000.00',
-                'reason' => 'attempting an impossible correction',
-            ])
-            ->assertHasNoActionErrors()
-            ->assertNotified();
-
-        $this->assertSame('10.00', (string) $wallet->fresh()->balance);
-        $this->assertSame(0, FinancialTransaction::query()->count());
-    }
-
-    public function test_adjustment_is_gated_behind_manage_wallet(): void
-    {
-        $wallet = $this->wallet();
-
-        Auth::login($this->operator('auditor'));
-
-        $adjust = collect(WalletControlActions::forTable())
-            ->first(fn ($action): bool => $action->getName() === 'adjustBalance');
-
-        $adjust->record($wallet);
-
-        $this->assertNotNull($adjust);
-        $this->assertFalse($adjust->isVisible());
-
-        Auth::login($this->operator('admin'));
-
-        $adjustForAdmin = collect(WalletControlActions::forTable())
-            ->first(fn ($action): bool => $action->getName() === 'adjustBalance');
-
-        $adjustForAdmin->record($wallet);
-
-        $this->assertTrue($adjustForAdmin->isVisible());
-    }
 
     public function test_available_balance_is_the_services_own_figure(): void
     {

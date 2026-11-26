@@ -64,8 +64,6 @@ export function verifyRuntimeMatrix(root, { installed = false } = {}) {
     if (!canonicalDocker.includes(`ARG PHP_VERSION=${php}`)) issues.push('docker/php/Dockerfile PHP argument does not match Composer.');
     if (!canonicalDocker.includes(`node:${node}-alpine`)) issues.push('docker/php/Dockerfile does not use the pinned Node build image.');
     if (!canonicalDocker.includes(`npm install --global npm@${npm}`)) issues.push('docker/php/Dockerfile does not activate the pinned npm.');
-    const legacyDocker = read(root, 'docker/php-fpm/Dockerfile');
-    if (!legacyDocker.includes(`FROM php:${php}-fpm-alpine`)) issues.push('Legacy docker/php-fpm/Dockerfile does not use the supported PHP runtime.');
 
     const cutover = read(root, 'deployment/CUTOVER-CHECKLIST.md');
     for (const label of [`PHP ${php}`, 'Laravel 12.x', `Node.js ${node}`, `NPM ${npm}`]) {

@@ -27,15 +27,6 @@
 @endphp
 <div class="next-public-page next-public-page--contact" data-next-public-page="contact">
     <a class="pp-skip-link" href="#contact-main">{{ trans('public_pages.skip_to_content') }}</a>
-    <header class="next-page-header">
-        <div class="next-shell next-page-header__inner">
-            <a class="next-brand" href="{{ route('home') }}" aria-label="{{ trans('contact.brand_aria') }}"><span class="next-brand__mark">TL</span><span>{{ trans('contact.brand_title') }}<small>{{ trans('contact.brand_subtitle') }}</small></span></a>
-            <nav class="next-nav" aria-label="{{ trans('contact.nav_primary') }}">
-                <a href="{{ route('home') }}">{{ trans('contact.nav_home') }}</a><a href="{{ route('about') }}">{{ trans('contact.nav_about') }}</a><a href="{{ route('terms') }}">{{ trans('contact.nav_terms') }}</a><a href="{{ route('privacy') }}">{{ trans('contact.nav_privacy') }}</a><a class="is-active" href="{{ route('contact') }}" aria-current="page">{{ trans('contact.nav_contact') }}</a>
-            </nav>
-            @guest<a class="next-button next-button--gold" href="{{ route('login') }}">{{ trans('contact.nav_login') }}</a>@else<a class="next-button next-button--gold" href="{{ route('player.dashboard') }}">{{ trans('contact.nav_dashboard') }}</a>@endguest
-        </div>
-    </header>
 
     <main id="contact-main" class="next-shell next-content" tabindex="-1">
         <section class="next-hero" aria-labelledby="contact-title">

@@ -13,11 +13,11 @@
     --wp-border-glow: #38bdf8;
     --wp-blue-accent: #38bdf8;
     --wp-blue-glow: rgba(56, 189, 248, 0.4);
-    --wp-green-accent: #10b981;
-    --wp-green-glow: rgba(16, 185, 129, 0.4);
+    --wp-green-accent: #e6ae26;
+    --wp-green-glow: rgba(230, 174, 38, 0.4);
     --wp-gold-accent: #f59e0b;
     --wp-gold-glow: rgba(245, 158, 11, 0.4);
-    --wp-text-main: #f1f5f9;
+    --wp-text-main: #f4ecd8;
     --wp-text-muted: #8e9bb0;
 }
 
@@ -99,9 +99,9 @@ body.wp-body {
 }
 
 .wp-stat-chip-green {
-    border-color: #10b981;
-    color: #34d399;
-    box-shadow: 0 0 12px rgba(16, 185, 129, 0.2);
+    border-color: #e6ae26;
+    color: #f6c744;
+    box-shadow: 0 0 12px rgba(230, 174, 38, 0.2);
 }
 
 /* MAIN CONTAINER */
@@ -152,7 +152,7 @@ body.wp-body {
 
 .wp-security-desc {
     font-size: 0.8125rem;
-    color: #94a3b8;
+    color: #b3a37d;
     margin: 0;
 }
 
@@ -269,7 +269,7 @@ body.wp-body {
     text-align: center;
     font-size: 0.9375rem;
     font-weight: 800;
-    color: #cbd5e1;
+    color: #cbbd98;
     cursor: pointer;
     transition: all 0.15s ease;
 }
@@ -332,13 +332,13 @@ body.wp-body {
 
 .wp-saved-account-box {
     background: var(--wp-bg-card-sub);
-    border: 1.5px solid #10b981;
+    border: 1.5px solid #e6ae26;
     border-radius: 1rem;
     padding: 1rem 1.25rem;
     display: flex;
     align-items: center;
     justify-content: space-between;
-    box-shadow: 0 0 15px rgba(16, 185, 129, 0.15);
+    box-shadow: 0 0 15px rgba(230, 174, 38, 0.15);
 }
 
 .wp-bank-logo {
@@ -390,7 +390,7 @@ body.wp-body {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    color: #94a3b8;
+    color: #b3a37d;
 }
 
 .wp-summary-row.total {

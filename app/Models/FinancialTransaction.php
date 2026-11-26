@@ -99,7 +99,7 @@ class FinancialTransaction extends Model
     }
 
     /**
-     * @return BelongsTo<User, self>
+     * @return BelongsTo<User, $this>
      */
     public function user(): BelongsTo
     {
@@ -107,7 +107,7 @@ class FinancialTransaction extends Model
     }
 
     /**
-     * @return BelongsTo<Wallet, self>
+     * @return BelongsTo<Wallet, $this>
      */
     public function wallet(): BelongsTo
     {
@@ -115,7 +115,7 @@ class FinancialTransaction extends Model
     }
 
     /**
-     * @return HasMany<LedgerEntry>
+     * @return HasMany<LedgerEntry, $this>
      */
     public function ledgerEntries(): HasMany
     {
@@ -128,7 +128,7 @@ class FinancialTransaction extends Model
      * The table stores reference_type / reference_id, so the link is a plain
      * polymorphic relation rather than a hard foreign key.
      *
-     * @return MorphTo<Model, self>
+     * @return MorphTo<Model, $this>
      */
     public function reference(): MorphTo
     {
@@ -136,7 +136,7 @@ class FinancialTransaction extends Model
     }
 
     /**
-     * @return BelongsTo<User, self>
+     * @return BelongsTo<User, $this>
      */
     public function reversedBy(): BelongsTo
     {
@@ -144,7 +144,7 @@ class FinancialTransaction extends Model
     }
 
     /**
-     * @return HasMany<Deposit>
+     * @return HasMany<Deposit, $this>
      */
     public function deposits(): HasMany
     {
@@ -152,7 +152,7 @@ class FinancialTransaction extends Model
     }
 
     /**
-     * @return HasMany<Withdrawal>
+     * @return HasMany<Withdrawal, $this>
      */
     public function withdrawals(): HasMany
     {
@@ -160,7 +160,7 @@ class FinancialTransaction extends Model
     }
 
     /**
-     * @return HasMany<Payout>
+     * @return HasMany<Payout, $this>
      */
     public function payouts(): HasMany
     {

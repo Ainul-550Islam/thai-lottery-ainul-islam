@@ -72,7 +72,7 @@ class TicketShare extends Model
     }
 
     /**
-     * @return BelongsTo<Ticket, self>
+     * @return BelongsTo<Ticket, $this>
      */
     public function ticket(): BelongsTo
     {
@@ -82,7 +82,7 @@ class TicketShare extends Model
     /**
      * The owner who created the share.
      *
-     * @return BelongsTo<User, self>
+     * @return BelongsTo<User, $this>
      */
     public function user(): BelongsTo
     {

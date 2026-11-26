@@ -8,6 +8,7 @@ use App\Enums\AgentStatus;
 use App\Filament\Resources\AgentResource\Pages;
 use App\Models\Agent;
 use App\Support\Admin\AdminAccess;
+use App\Support\Admin\AdminPermission;
 use App\Support\Admin\AdminFormat;
 use Filament\Infolists;
 use Filament\Infolists\Infolist;
@@ -66,7 +67,7 @@ class AgentResource extends Resource
 
     public static function canViewAny(): bool
     {
-        return AdminAccess::current(AdminAccess::MANAGE_AGENTS);
+        return AdminAccess::permits(AdminPermission::AGENTS_MANAGE);
     }
 
     public static function canView(Model $record): bool
@@ -107,7 +108,7 @@ class AgentResource extends Resource
      */
     public static function canViewCommissions(): bool
     {
-        return AdminAccess::current(AdminAccess::VIEW_COMMISSIONS);
+        return AdminAccess::permits(AdminPermission::COMMISSIONS_VIEW);
     }
 
     /**

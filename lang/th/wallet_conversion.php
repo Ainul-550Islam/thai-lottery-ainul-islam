@@ -131,6 +131,7 @@ return array (
   'status_converted' => 'แปลงยอดสำเร็จ ยอดสุทธิ :net :currency เข้าสู่ :wallet หลังหักค่าธรรมเนียม :fee :currency รหัสอ้างอิง :reference',
   'validation_amount_precision' => 'ข้อมูล :attribute ต้องมีทศนิยมไม่เกิน 2 ตำแหน่ง (หน่วยเล็กสุดคือ 0.01)',
   'validation_currency_mismatch' => 'รองรับเฉพาะสกุลเงินหลักของแพลตฟอร์มเท่านั้น',
+  'event_requested' => 'ส่งคำขอแล้ว',
   'event_completed' => 'ทำรายการสำเร็จ',
   'event_reversed' => 'ยกเลิกรายการแล้ว',
   'event_rejected' => 'ปฏิเสธรายการ',

@@ -99,7 +99,7 @@ class Deposit extends Model
     }
 
     /**
-     * @return BelongsTo<User, self>
+     * @return BelongsTo<User, $this>
      */
     public function user(): BelongsTo
     {
@@ -107,7 +107,7 @@ class Deposit extends Model
     }
 
     /**
-     * @return BelongsTo<Wallet, self>
+     * @return BelongsTo<Wallet, $this>
      */
     public function wallet(): BelongsTo
     {
@@ -115,7 +115,7 @@ class Deposit extends Model
     }
 
     /**
-     * @return BelongsTo<FinancialTransaction, self>
+     * @return BelongsTo<FinancialTransaction, $this>
      */
     public function financialTransaction(): BelongsTo
     {
@@ -125,7 +125,7 @@ class Deposit extends Model
     /**
      * The gateway attempt behind this deposit.
      *
-     * @return MorphOne<Payment>
+     * @return MorphOne<Payment, $this>
      */
     public function payment(): MorphOne
     {
@@ -135,7 +135,7 @@ class Deposit extends Model
     /**
      * All gateway attempts, including earlier failed ones.
      *
-     * @return MorphMany<Payment>
+     * @return MorphMany<Payment, $this>
      */
     public function payments(): MorphMany
     {
@@ -145,7 +145,7 @@ class Deposit extends Model
     /**
      * Ledger entries that reference this deposit polymorphically.
      *
-     * @return MorphMany<LedgerEntry>
+     * @return MorphMany<LedgerEntry, $this>
      */
     public function ledgerEntries(): MorphMany
     {

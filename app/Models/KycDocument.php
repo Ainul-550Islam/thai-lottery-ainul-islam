@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Models;
 
 use App\Enums\KycDocumentType;
+use App\Enums\KycDocumentVerificationStatus;
 use App\Enums\KycStatus;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -25,10 +26,18 @@ use Illuminate\Support\Carbon;
  * @property string $mime_type
  * @property int $file_size
  * @property KycStatus $status
+ * @property KycDocumentVerificationStatus $verification_status
  * @property string|null $rejection_reason
  * @property Carbon|null $verified_at
+ * @property Carbon|null $expires_at
+ * @property Carbon|null $submitted_at
  * @property int|null $verified_by
+ * @property string|null $verification_reference
+ * @property string|null $document_fingerprint
+ * @property string|null $issuer_country
  * @property array<string, mixed>|null $metadata
+ *
+ * @use HasFactory<\Database\Factories\KycDocumentFactory>
  */
 class KycDocument extends Model
 {
@@ -72,6 +81,11 @@ class KycDocument extends Model
         return [
             'document_type' => KycDocumentType::class,
             'status' => KycStatus::class,
+            // The authoritative lifecycle column has had an enum since the batch-13 migration and
+            // was never cast, so every reader compared it as a string ('verified' === $enum was
+            // false). Casting it here makes the two lanes speak the same type; DB-level
+            // `where('verification_status', ...->value)` queries are unaffected.
+            'verification_status' => KycDocumentVerificationStatus::class,
             'file_size' => 'integer',
             'verified_at' => 'datetime',
             'expires_at' => 'datetime',
@@ -81,7 +95,7 @@ class KycDocument extends Model
     }
 
     /**
-     * @return BelongsTo<User, self>
+     * @return BelongsTo<User, $this>
      */
     public function user(): BelongsTo
     {
@@ -89,7 +103,7 @@ class KycDocument extends Model
     }
 
     /**
-     * @return BelongsTo<User, self>
+     * @return BelongsTo<User, $this>
      */
     public function reviewer(): BelongsTo
     {
@@ -99,6 +113,26 @@ class KycDocument extends Model
     public function isVerified(): bool
     {
         return $this->status === KycStatus::Verified;
+    }
+
+    /**
+     * The document's verification state, tolerating a row that was read without casts.
+     *
+     * The model casts `verification_status` to the enum, so the ordinary path is a straight read.
+     * `getRawOriginal()` covers the other path — a row loaded through the query builder or a
+     * report that selects the column as text — where the attribute really is a string. Doing this
+     * once, here, is why four call sites no longer each carry an `instanceof` branch that can
+     * never be false.
+     */
+    public function verificationState(): ?KycDocumentVerificationStatus
+    {
+        $raw = $this->getRawOriginal('verification_status');
+
+        if (is_string($raw) && $raw !== '') {
+            return KycDocumentVerificationStatus::tryFrom($raw);
+        }
+
+        return $this->verification_status;
     }
 
     /**

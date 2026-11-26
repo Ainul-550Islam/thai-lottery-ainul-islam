@@ -78,16 +78,22 @@ final class BladeRawOutputTest extends TestCase
     private function bladeFiles(): array
     {
         $files = [];
-        $root = resource_path('views');
+        $base = rtrim(str_replace('\\', '/', base_path()), '/').'/';
 
-        $iterator = new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($root, \FilesystemIterator::SKIP_DOTS));
+        $iterator = new \RecursiveIteratorIterator(
+            new \RecursiveDirectoryIterator(resource_path('views'), \FilesystemIterator::SKIP_DOTS),
+        );
 
         foreach ($iterator as $file) {
             if (! $file->isFile() || ! str_ends_with($file->getFilename(), '.blade.php')) {
                 continue;
             }
 
-            $relative = str_replace('\\', '/', str_replace(base_path().'/', '', $file->getPathname()));
+            // Normalise separators BEFORE stripping the base path: on Windows both
+            // base_path() and getPathname() use backslashes, so stripping
+            // base_path().'/' never matched and absolute paths leaked through.
+            $path = str_replace('\\', '/', $file->getPathname());
+            $relative = str_starts_with($path, $base) ? substr($path, strlen($base)) : $path;
 
             // Comments first. A docblock that SAYS "{!! !!} is not used here" is
             // not a raw echo, and treating it as one produced a phantom empty

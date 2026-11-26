@@ -29,7 +29,7 @@
 
 /* High Contrast Focus Indication */
 :focus-visible {
-    outline: 3px solid #10b981 !important;
+    outline: 3px solid #e6ae26 !important;
     outline-offset: 3px !important;
 }
 
@@ -40,7 +40,7 @@
     left: 1rem;
     z-index: 9999;
     padding: 0.75rem 1.5rem;
-    background-color: #059669;
+    background-color: #c78f17;
     color: #ffffff;
     font-weight: 700;
     border-radius: 0.75rem;

@@ -45,7 +45,7 @@
 }
 
 .tl-glass-input {
-    background: rgba(2, 6, 23, 0.8);
+    background: rgba(8, 6, 3, 0.8);
     border: 1px solid var(--tl-glass-border);
     border-radius: var(--tl-radius-lg);
     color: var(--tl-text-primary);

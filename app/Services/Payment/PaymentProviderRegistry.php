@@ -14,6 +14,7 @@ use App\Exceptions\PaymentProviderException;
 use App\Models\AuditLog;
 use App\Models\PaymentMethodConfig;
 use App\Models\PaymentProvider;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -34,6 +35,8 @@ use Illuminate\Support\Facades\DB;
  */
 final class PaymentProviderRegistry
 {
+    public function __construct(private readonly PaymentGatewayManager $gateways) {}
+
     /* ------------------------------------------------ conductora --- */
 
     /**
@@ -58,6 +61,14 @@ final class PaymentProviderRegistry
                 }
 
                 return ['provider' => $existing, 'replayed' => true];
+            }
+
+            // A row naming a driver no class implements cannot carry traffic, and storing it
+            // would present as configured to every reader of the table. Refused here, by name,
+            // with the list of drivers that DO exist — the panel's provider screen is read-only,
+            // so this registry is the only door a provider row can come through.
+            if (! $this->gateways->hasDriver($data->driver)) {
+                throw PaymentProviderException::unsupportedDriver($data->driver, ['code' => $data->code]);
             }
 
             $row = new PaymentProvider();
@@ -96,9 +107,29 @@ final class PaymentProviderRegistry
                 throw PaymentProviderException::notFound('provider:'.$data->providerCode);
             }
 
-            /** @var PaymentMethodConfig|null $existing */
+            /**
+             * THE LOOKUP USES THE SAME KEY THE DATABASE USES.
+             *
+             * The unique index on this table is (provider_id, method_code, currency).
+             * Checking only the derived `method_key` hash left a hole: a row written by
+             * another lane, or by an older key shape, would not match the hash, the insert
+             * would then hit the index, and the caller got a raw
+             * UniqueConstraintViolationException — a 500 that interpolates the whole INSERT
+             * into the log — where the domain's answer is "that offer already exists".
+             * Matching on the natural triple first closes it: every duplicate now arrives as
+             * PaymentProviderException::duplicate() with the facts compared below.
+             *
+             * @var PaymentMethodConfig|null $existing
+             */
             $existing = PaymentMethodConfig::query()->lockForUpdate()
-                ->where('method_key', $data->methodKey())
+                ->where(function (Builder $query) use ($data, $provider): void {
+                    $query->where('method_key', $data->methodKey())
+                        ->orWhere(function (Builder $triple) use ($data, $provider): void {
+                            $triple->where('provider_id', (int) $provider->id)
+                                ->where('method_code', $data->methodCode)
+                                ->where('currency', $data->currency);
+                        });
+                })
                 ->first();
 
             if ($existing instanceof PaymentMethodConfig) {
@@ -127,7 +158,13 @@ final class PaymentProviderRegistry
             $row->status = $data->status;
             $row->save();
 
-            $this->recordAudit('register_method', $row->id, sprintf('Registered method [%s/%s/%s] on [%s]', $data->methodCode, $data->currency, $data->providerCode, $data->status->value), RiskLevel::Medium);
+            $this->recordAudit(
+                'register_method',
+                (int) $row->id,
+                sprintf('Registered method [%s/%s/%s] on [%s]', $data->methodCode, $data->currency, $data->providerCode, $data->status->value),
+                RiskLevel::Medium,
+                PaymentMethodConfig::class,
+            );
 
             return ['method' => $row, 'replayed' => false];
         });
@@ -263,7 +300,13 @@ final class PaymentProviderRegistry
             $locked->retired_at = $target === PaymentMethodStatus::Retired ? now() : $locked->retired_at;
             $locked->save();
 
-            $this->recordAudit('transition_method', (int) $locked->id, sprintf('Method [%s] → %s (%s)', $locked->method_key, $target->value, \Illuminate\Support\Str::limit(trim($reason), 255, '')), RiskLevel::High);
+            $this->recordAudit(
+                'transition_method',
+                (int) $locked->id,
+                sprintf('Method [%s] → %s (%s)', $locked->method_key, $target->value, \Illuminate\Support\Str::limit(trim($reason), 255, '')),
+                RiskLevel::High,
+                PaymentMethodConfig::class,
+            );
 
             return $locked;
         });
@@ -271,15 +314,35 @@ final class PaymentProviderRegistry
 
     /* --------------------------------------------------- internals -- */
 
-    private function recordAudit(string $verb, int $subjectId, string $description, RiskLevel $riskLevel): void
-    {
+    /**
+     * @param  class-string  $subjectType  The model the id belongs to.
+     *
+     * Method verbs used to pass PaymentMethodConfig ids while hard-coding
+     * PaymentProvider::class as the morph type, so an audit row for "method retired" pointed at
+     * a PROVIDER whose id happened to be the method's. The trail then answered the wrong
+     * question ("which provider?" instead of "which offer?"). The type is a parameter now
+     * and every caller states it; provider verbs keep the previous value, so existing rows and
+     * assertions are unaffected.
+     */
+    private function recordAudit(
+        string $verb,
+        int $subjectId,
+        string $description,
+        RiskLevel $riskLevel,
+        string $subjectType = PaymentProvider::class,
+    ): void {
         $log = new AuditLog();
 
         $log->fill([
-            'user_id' => null,
+            // ATTRIBUTION: when the transition arrives from an authenticated operator
+            // (the admin panel), the audit line names them. Console and system lanes have
+            // no authenticated user and keep the historical null rather than inventing an
+            // identity. The provider lifecycle is a money-adjacent power, so "who took it
+            // out of traffic?" must be answerable from the trail alone.
+            'user_id' => auth()->id(),
             'action' => AuditAction::Update,
             'risk_level' => $riskLevel,
-            'auditable_type' => PaymentProvider::class,
+            'auditable_type' => $subjectType,
             'auditable_id' => $subjectId,
             'description' => sprintf('%s (%s)', $description, $verb),
             'metadata' => ['lane' => 'payment-provider-registry', 'verb' => $verb],

@@ -34,25 +34,25 @@ class DepositSlipVerification extends Model
         ];
     }
 
-    /** @return BelongsTo<User, self> */
+    /** @return BelongsTo<User, $this> */
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
     }
 
-    /** @return BelongsTo<Deposit, self> */
+    /** @return BelongsTo<Deposit, $this> */
     public function deposit(): BelongsTo
     {
         return $this->belongsTo(Deposit::class);
     }
 
-    /** @return BelongsTo<UploadScanRecord, self> */
+    /** @return BelongsTo<UploadScanRecord, $this> */
     public function uploadScanRecord(): BelongsTo
     {
         return $this->belongsTo(UploadScanRecord::class);
     }
 
-    /** @return BelongsTo<User, self> */
+    /** @return BelongsTo<User, $this> */
     public function reviewer(): BelongsTo
     {
         return $this->belongsTo(User::class, 'reviewed_by');

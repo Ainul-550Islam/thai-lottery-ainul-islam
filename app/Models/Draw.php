@@ -172,7 +172,7 @@ class Draw extends Model
     }
 
     /**
-     * @return HasMany<Bet>
+     * @return HasMany<Bet, $this>
      */
     public function bets(): HasMany
     {
@@ -180,7 +180,7 @@ class Draw extends Model
     }
 
     /**
-     * @return HasMany<Ticket>
+     * @return HasMany<Ticket, $this>
      */
     public function tickets(): HasMany
     {
@@ -190,7 +190,7 @@ class Draw extends Model
     /**
      * The published official result of the draw (one row per draw).
      *
-     * @return HasOne<DrawResult>
+     * @return HasOne<DrawResult, $this>
      */
     public function result(): HasOne
     {
@@ -198,7 +198,7 @@ class Draw extends Model
     }
 
     /**
-     * @return HasMany<WinningNumber>
+     * @return HasMany<WinningNumber, $this>
      */
     public function winningNumbers(): HasMany
     {
@@ -206,7 +206,7 @@ class Draw extends Model
     }
 
     /**
-     * @return HasMany<Payout>
+     * @return HasMany<Payout, $this>
      */
     public function payouts(): HasMany
     {
@@ -214,7 +214,7 @@ class Draw extends Model
     }
 
     /**
-     * @return HasMany<NumberLimit>
+     * @return HasMany<NumberLimit, $this>
      */
     public function numberLimits(): HasMany
     {

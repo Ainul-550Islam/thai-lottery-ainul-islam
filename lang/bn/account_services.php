@@ -218,4 +218,7 @@ return array_replace($english, [
     'not_configured' => 'কনফিগার করা নেই',
     'error_generic' => 'কিছু সমস্যা হয়েছে। আবার চেষ্টা করুন।',
     'success_generic' => 'সংরক্ষিত হয়েছে।',
+    'save' => 'সংরক্ষণ করুন',
+    'cancel' => 'বাতিল করুন',
+    'back' => 'ফিরে যান',
 ]);

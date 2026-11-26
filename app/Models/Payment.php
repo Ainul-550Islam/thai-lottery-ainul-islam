@@ -12,6 +12,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Payment extends Model
 {
+    /** @use HasFactory<\Database\Factories\PaymentFactory> */
     use HasFactory, SoftDeletes;
 
     protected $fillable = [
@@ -54,6 +55,7 @@ class Payment extends Model
         ];
     }
 
+    /** @return BelongsTo<User, $this> */
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);

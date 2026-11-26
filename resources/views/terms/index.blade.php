@@ -24,30 +24,6 @@
 <div class="terms-page" data-terms-page data-terms-status="{{ $isAvailable ? 'AVAILABLE' : 'UNAVAILABLE' }}" data-locale="{{ (string) ($terms['locale'] ?? app()->getLocale()) }}">
     <a class="pp-skip-link" href="#terms-main">{{ trans('public_pages.skip_to_content') }}</a>
 
-    <header class="terms-header" role="banner">
-        <div class="terms-shell terms-header__inner">
-            <a class="terms-brand" href="{{ route('home') }}" aria-label="ThaiLotto home">
-                <span class="terms-brand__mark" aria-hidden="true"><span>TL</span></span>
-                <span class="terms-brand__name">{{ config('app.name') }} <small>LEGAL INFORMATION</small></span>
-            </a>
-            <nav class="terms-nav" aria-label="Primary navigation">
-                <a href="{{ route('home') }}">HOME</a>
-                <a href="{{ route('results.index') }}">RESULTS</a>
-                <a href="{{ route('about') }}">ABOUT US</a>
-                <a href="{{ route('vision') }}">VISION</a>
-                <a class="is-active" href="{{ route('terms') }}" aria-current="page">TERMS</a>
-                <a href="{{ route('contact') }}">CONTACT</a>
-            </nav>
-            <div class="terms-header__actions">
-                <button class="terms-button terms-button--quiet terms-print-button" type="button" data-print-terms>PRINT</button>
-                @auth
-                    <a class="terms-button terms-button--gold" href="{{ route('player.dashboard') }}">DASHBOARD</a>
-                @else
-                    <a class="terms-button terms-button--gold" href="{{ route('login') }}">LOGIN</a>
-                @endauth
-            </div>
-        </div>
-    </header>
 
     <div id="terms-main" class="terms-shell terms-content" tabindex="-1">
         <section class="terms-hero" aria-labelledby="terms-title">
@@ -219,11 +195,11 @@
 @php
     $legalL10n = [
         'notAvailable' => __('public_pages.download_not_available'),
-        'notConfigured' => __('public_pages.download_not_configured'),
+        'notConfigured' => __('public_pages.download_pdf_not_configured'),
         'unsupportedLocale' => __('public_pages.download_unsupported_locale'),
         'failed' => __('public_pages.download_failed'),
         'starting' => __('public_pages.download_starting'),
-        'ready' => __('public_pages.download_ready'),
+        'ready' => __('public_pages.download_pdf_ready'),
         'version' => __('public_pages.download_version'),
         'cached' => __('public_pages.download_cached'),
         'download' => __('public_pages.download_pdf'),
@@ -232,7 +208,7 @@
 <section id="legal-downloads" class="next-section tl-legal-downloads" aria-labelledby="legal-downloads-title">
     <div class="next-section__heading"><span class="next-section__number">PDF</span><div>
         <p class="next-eyebrow">{{trans('public_pages.download_terms_label')}}</p>
-        <h2 id="legal-downloads-title">{{ __('public_pages.download_title') }}</h2>
+        <h2 id="legal-downloads-title">{{ __('public_pages.download_pdf_title') }}</h2>
     </div></div>
     <div class="next-section__body">
         <p>{{ __('public_pages.download_hint') }}</p>

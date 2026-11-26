@@ -9,6 +9,7 @@ use App\Models\GloPrizeClaim;
 use App\Models\User;
 use App\Services\Lottery\GloPrizeClaimService;
 use App\Support\Admin\AdminAccess;
+use App\Support\Admin\AdminPermission;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Form;
@@ -43,10 +44,10 @@ class GloPrizeClaimPage extends Page
 
     public static function canAccess(): bool
     {
-        return AdminAccess::currentAny([
-            AdminAccess::MANAGE_GLO_PRIZE_CLAIMS,
-            AdminAccess::EXECUTE_GLO_PRIZE_PAYMENTS,
-            AdminAccess::VIEW_AUDIT_LOGS,
+        return AdminAccess::permitsAny([
+            AdminPermission::GLO_CLAIMS_MANAGE,
+            AdminPermission::GLO_CLAIMS_PAY,
+            AdminPermission::AUDIT_LOGS_VIEW,
         ]);
     }
 
@@ -86,8 +87,8 @@ class GloPrizeClaimPage extends Page
             });
         }
 
-        $canReview = AdminAccess::current(AdminAccess::MANAGE_GLO_PRIZE_CLAIMS);
-        $canPay = AdminAccess::current(AdminAccess::EXECUTE_GLO_PRIZE_PAYMENTS);
+        $canReview = AdminAccess::permits(AdminPermission::GLO_CLAIMS_MANAGE);
+        $canPay = AdminAccess::permits(AdminPermission::GLO_CLAIMS_PAY);
 
         return $query->get()
             ->map(fn (GloPrizeClaim $claim): array => [
@@ -165,7 +166,7 @@ class GloPrizeClaimPage extends Page
 
     private function assertGloPermission(?User $actor, string $permission): User
     {
-        if ($actor === null || ! AdminAccess::allows($actor, $permission)) {
+        if ($actor === null || ! AdminAccess::permits($permission, $actor)) {
             throw new \RuntimeException('Missing required GLO permission.');
         }
 

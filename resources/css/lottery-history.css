@@ -1,6 +1,6 @@
 /**
  * Lottery Platform Member Lottery Bet History & Slip Verification Portal Stylesheet
- * Brand colors: Dark Navy (#0b0f17, #131b29), Golden Amber (#f59e0b, #d97706), Emerald (#10b981), Rose (#ef4444)
+ * Brand colors: Dark Navy (#0b0f17, #131b29), Golden Amber (#f59e0b, #d97706), Emerald (#e6ae26), Rose (#ef4444)
  */
 
 :root {
@@ -13,10 +13,10 @@
     --lh-border-gold: #f59e0b;
     --lh-gold-main: #f59e0b;
     --lh-gold-hover: #d97706;
-    --lh-green-main: #10b981;
+    --lh-green-main: #e6ae26;
     --lh-red-main: #ef4444;
-    --lh-text-main: #f1f5f9;
-    --lh-text-muted: #94a3b8;
+    --lh-text-main: #f4ecd8;
+    --lh-text-muted: #b3a37d;
 }
 
 body.lh-body {
@@ -200,7 +200,7 @@ body.lh-body {
 
 .lh-filter-pill:hover {
     color: #ffffff;
-    border-color: #334155;
+    border-color: #4a3d1f;
 }
 
 .lh-filter-pill.active {
@@ -296,7 +296,7 @@ body.lh-body {
 }
 
 .lh-slip-card:hover {
-    border-color: #334155;
+    border-color: #4a3d1f;
     transform: translateY(-2px);
 }
 
@@ -345,7 +345,7 @@ body.lh-body {
 }
 
 .lh-status-badge.won {
-    background-color: rgba(16, 185, 129, 0.15);
+    background-color: rgba(230, 174, 38, 0.15);
     border: 1px solid var(--lh-green-main);
     color: var(--lh-green-main);
 }

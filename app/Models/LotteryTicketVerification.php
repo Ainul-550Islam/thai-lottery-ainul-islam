@@ -24,6 +24,7 @@ use Illuminate\Support\Str;
  */
 class LotteryTicketVerification extends Model
 {
+    /** @use HasFactory<\Database\Factories\LotteryTicketVerificationFactory> */
     use HasFactory;
 
     public const UPDATED_AT = null;

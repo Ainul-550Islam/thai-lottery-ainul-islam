@@ -10,6 +10,7 @@ use App\Filament\Resources\LedgerAccountResource\Pages;
 use App\Models\LedgerAccount;
 use App\Models\LedgerEntry;
 use App\Support\Admin\AdminAccess;
+use App\Support\Admin\AdminPermission;
 use App\Support\Admin\AdminFormat;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
@@ -72,9 +73,9 @@ class LedgerAccountResource extends Resource
 
     public static function canViewAny(): bool
     {
-        return AdminAccess::currentAny([
-            AdminAccess::RECONCILE_LEDGER,
-            AdminAccess::VIEW_FINANCIAL_REPORTS,
+        return AdminAccess::permitsAny([
+            AdminPermission::LEDGER_RECONCILE,
+            AdminPermission::LEDGER_VIEW,
         ]);
     }
 

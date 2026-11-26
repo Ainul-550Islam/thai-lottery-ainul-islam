@@ -42,6 +42,7 @@ use Illuminate\Support\Str;
  */
 class NationalLotteryDraw extends Model
 {
+    /** @use HasFactory<\Database\Factories\NationalLotteryDrawFactory> */
     use HasFactory;
 
     /** Lane lifecycle values (distinct from publication status). */

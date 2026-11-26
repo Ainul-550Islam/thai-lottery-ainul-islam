@@ -8,9 +8,10 @@ return [
     |--------------------------------------------------------------------------
     | Fraud & Risk Engine Operating Mode
     |--------------------------------------------------------------------------
-    | 'log_only' : Logs risk decisions without holding/denying transactions.
-    | 'review'   : Holds suspicious transactions for compliance review.
-    | 'enforce'  : Enforces immediate rejection on critical fraud scores.
+    | 'observe' / 'log_only': attach and log decisions without interception.
+    | 'enforce'             : enforce DENY, HOLD_FOR_REVIEW, and STEP_UP.
+    | Any other value fails closed as enforcing; configuration typos must not
+    | silently disable the pre-transaction risk gate.
     */
     'mode' => env('FRAUD_DETECTION_MODE', 'enforce'),
 

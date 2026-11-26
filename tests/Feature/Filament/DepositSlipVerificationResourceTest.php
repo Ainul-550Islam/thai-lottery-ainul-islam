@@ -44,10 +44,11 @@ final class DepositSlipVerificationResourceTest extends PaymentTestCase
     public function test_staff_can_approve_and_credit_once_and_can_replay_idempotently(): void
     {
         $player = $this->createPlayer('0.00');
+        $amount = $this->depositAmount();
         $deposit = app(DepositService::class)->request(
-            $player['wallet'], Money::of('82.50', Currency::THB), PaymentMethod::BankTransfer,
+            $player['wallet'], Money::of($amount, Currency::THB), PaymentMethod::BankTransfer,
         );
-        $verification = $this->verification($player['user']->getKey(), $deposit->getKey(), 'SLIP-STAFF-CREDIT-001', '82.50');
+        $verification = $this->verification($player['user']->getKey(), $deposit->getKey(), 'SLIP-STAFF-CREDIT-001', $amount);
         $staff = $this->operator('admin');
         $this->actingAs($staff);
 
@@ -56,7 +57,7 @@ final class DepositSlipVerificationResourceTest extends PaymentTestCase
 
         self::assertSame(SlipVerificationStatus::Credited, $first->fresh()->status);
         self::assertSame(SlipVerificationStatus::Credited, $second->status);
-        self::assertSame('82.50', $player['wallet']->fresh()->balance);
+        self::assertSame($amount, $player['wallet']->fresh()->balance);
         self::assertDatabaseCount('financial_transactions', 1);
         self::assertDatabaseCount('ledger_entries', 2);
         self::assertSame($staff->getKey(), $first->fresh()->reviewed_by);
@@ -120,10 +121,11 @@ final class DepositSlipVerificationResourceTest extends PaymentTestCase
     public function test_review_action_requires_complete_provider_checks_and_a_credit_safe_fraud_decision(): void
     {
         $player = $this->createPlayer('0.00');
+        $amount = $this->depositAmount();
         $deposit = app(DepositService::class)->request(
-            $player['wallet'], Money::of('64.00', Currency::THB), PaymentMethod::BankTransfer,
+            $player['wallet'], Money::of($amount, Currency::THB), PaymentMethod::BankTransfer,
         );
-        $verification = $this->verification($player['user']->getKey(), $deposit->getKey(), 'SLIP-FRAUD-UNKNOWN-001', '64.00');
+        $verification = $this->verification($player['user']->getKey(), $deposit->getKey(), 'SLIP-FRAUD-UNKNOWN-001', $amount);
         $payload = $verification->provider_payload;
         $staff = $this->operator('admin');
         $this->actingAs($staff);
@@ -150,6 +152,44 @@ final class DepositSlipVerificationResourceTest extends PaymentTestCase
         $user->assignRole($role);
 
         return $user->fresh();
+    }
+
+    /**
+     * An amount this deployment will actually accept.
+     *
+     * WHY THIS IS NOT HARD-CODED
+     *
+     * The two credit tests used to request 82.50 and 64.00 THB. That is above the shipped default
+     * floor (50.00) and below the floor some deployments set (this tree's `.env` says 100.00), so a
+     * test about SLIP VERIFICATION silently became a test about the deposit minimum and went red on
+     * any deployment that raised it — with a `DepositException` that says nothing about slips.
+     *
+     * A fixture must not depend on the operator's `.env`. The amount is therefore derived from the
+     * configured floor, and the floor itself is proved by
+     * `test_the_deposit_minimum_is_still_enforced` below, so making these tests pass cannot hide a
+     * weakened limit.
+     */
+    private function depositAmount(): string
+    {
+        return bcadd((string) config('finance.deposit.min'), '25.00', 2);
+    }
+
+    public function test_the_deposit_minimum_is_still_enforced(): void
+    {
+        $player = $this->createPlayer('0.00');
+        $belowFloor = bcsub((string) config('finance.deposit.min'), '0.01', 2);
+
+        try {
+            app(DepositService::class)->request(
+                $player['wallet'], Money::of($belowFloor, Currency::THB), PaymentMethod::BankTransfer,
+            );
+            self::fail('A deposit below the configured floor must be refused.');
+        } catch (\App\Exceptions\DepositException $exception) {
+            self::assertSame('deposit_amount_out_of_range', $exception->errorCode());
+        }
+
+        self::assertDatabaseCount('deposits', 0);
+        self::assertSame('0.00', $player['wallet']->fresh()->balance);
     }
 
     private function verification(int $userId, ?int $depositId = null, string $transRef = 'SLIP-STAFF-001', string $amount = '10.00'): DepositSlipVerification

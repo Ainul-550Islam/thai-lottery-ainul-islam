@@ -43,14 +43,14 @@ class ConversionCurrencyBoundaryTest extends ConversionTestCase
         config(['conversions.currency' => $currency]);
         $payload = ['direction' => 'cash_to_win', 'amount' => '100.00', 'currency' => 'THB',
             'idempotency_key' => 'invalid-configuration-key-000001', 'quote_reference' => 'unused-quote'];
-        $this->get('/wallet/convert')->assertStatus(503);
+        $this->web()->get('/wallet/convert')->assertStatus(503);
         $this->getJson('/api/v1/wallet/conversions/summary')->assertStatus(503)
             ->assertJsonPath('error.code', 'currency_not_configured');
         $this->postJson('/api/v1/wallet/conversions/quote', $payload)->assertStatus(503)
             ->assertJsonPath('error.code', 'currency_not_configured');
         $this->postJson('/api/v1/wallet/conversions', $payload)->assertStatus(503)
             ->assertJsonPath('error.code', 'currency_not_configured');
-        $this->json('GET', '/wallet/convert/preview', $payload)->assertStatus(503)
+        $this->web()->json('GET', '/wallet/convert/preview', $payload)->assertStatus(503)
             ->assertJsonPath('error.code', 'currency_not_configured');
         foreach ([
             fn () => $this->service()->quote($this->request($member['user'])),
@@ -73,7 +73,7 @@ class ConversionCurrencyBoundaryTest extends ConversionTestCase
             'idempotency_key' => 'invalid-request-currency-000001', 'quote_reference' => 'unused-quote'];
         $this->postJson('/api/v1/wallet/conversions/quote', $payload)->assertStatus(422);
         $this->postJson('/api/v1/wallet/conversions', $payload)->assertStatus(422);
-        $this->json('GET', '/wallet/convert/preview', $payload)->assertStatus(422);
+        $this->web()->json('GET', '/wallet/convert/preview', $payload)->assertStatus(422);
         $this->json('GET', '/api/v1/wallet/conversions/summary', ['currency' => $currency])->assertStatus(422);
         $this->assertUntouched($member);
     }
@@ -85,7 +85,7 @@ class ConversionCurrencyBoundaryTest extends ConversionTestCase
         Sanctum::actingAs($member['user']);
         $payload = ['direction' => 'cash_to_win', 'amount' => '100.00', 'currency' => 'USD'];
         $this->postJson('/api/v1/wallet/conversions/quote', $payload)->assertStatus(422)->assertJsonPath('error.code', 'currency_mismatch');
-        $this->json('GET', '/wallet/convert/preview', $payload)->assertStatus(422)->assertJsonPath('error.code', 'currency_mismatch');
+        $this->web()->json('GET', '/wallet/convert/preview', $payload)->assertStatus(422)->assertJsonPath('error.code', 'currency_mismatch');
         $this->assertUntouched($member);
     }
 
@@ -250,5 +250,12 @@ class ConversionCurrencyBoundaryTest extends ConversionTestCase
         $this->assertSame(0, WalletConversion::query()->count());
         $this->assertSame($expectedQuotes, WalletConversionQuote::query()->count());
         $this->assertSame(0, LedgerEntry::query()->count());
+    }
+
+    private function web(): static
+    {
+        \Illuminate\Support\Facades\Auth::shouldUse('web');
+
+        return $this;
     }
 }

@@ -265,7 +265,7 @@
              them, handing the player page 2 of a list they filtered. --}}
         @if (isset($page) && method_exists($page, 'links') && $lastPage > 1)
             <nav class="pt-6" aria-label="{{ __('transfer.history_page.pagination') }}">
-                {{ $page->appends($activeFilters)->links() }}
+                {{ $page->appends($activeFilters)->links('pagination::tailwind') }}
             </nav>
         @endif
 

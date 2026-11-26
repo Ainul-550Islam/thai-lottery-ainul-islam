@@ -6,6 +6,7 @@ namespace App\Filament\Pages;
 
 use App\Services\Lottery\GloPrizeCatalogue;
 use App\Support\Admin\AdminAccess;
+use App\Support\Admin\AdminPermission;
 use Filament\Pages\Page;
 
 /**
@@ -32,7 +33,7 @@ class GloPrizeStructurePage extends Page
 
     public static function canAccess(): bool
     {
-        return AdminAccess::current(AdminAccess::VIEW_DRAWS);
+        return AdminAccess::permits(AdminPermission::GAMES_VIEW);
     }
 
     /**

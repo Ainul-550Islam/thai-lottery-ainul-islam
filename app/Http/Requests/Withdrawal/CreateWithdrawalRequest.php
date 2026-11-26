@@ -38,7 +38,7 @@ final class CreateWithdrawalRequest extends FormRequest
      */
     public function rules(): array
     {
-        return [
+        $rules = [
             // Amount stays a STRING of digits with at most two fractional
             // digits; a client that ships an exponent, a currency symbol or
             // thousands separators gets a 422, not silent float arithmetic.
@@ -53,7 +53,7 @@ final class CreateWithdrawalRequest extends FormRequest
 
             // Optional currency override; the default stays server-side
             // (THB, the GLO operating currency), not client-side.
-            'currency' => ['nullable', 'string', 'in:THB,USD,BDT'],
+            'currency' => ['nullable', 'string', 'in:'.implode(',', (array) config('finance.currency.player_currencies', ['BDT']))],
 
             // Destination details are a free-form label blob at this layer;
             // the operator's disbursement court re-checks them. Tighten only
@@ -64,6 +64,7 @@ final class CreateWithdrawalRequest extends FormRequest
             // Idempotency mirrors: body field OR header, never both
             // disagreeing. The header wins only when the body is absent.
             'idempotency_key' => ['nullable', 'string', 'min:16', 'max:128'],
+            'member_bank_account_id' => ['nullable', 'integer', 'min:1'],
 
             // Client-side claims the server expressly ignores — refusing
             // them loudly is kinder than silently dropping them when a
@@ -83,6 +84,15 @@ final class CreateWithdrawalRequest extends FormRequest
             'provider_reference' => ['prohibited'],
             'approved_by' => ['prohibited'],
         ];
+
+        // A mobile-wallet payout goes to a phone number: refuse anything else
+        // before any money is held (same rule as the web withdrawal form).
+        if (in_array((string) $this->input('method', ''), [PaymentMethod::Bkash->value, PaymentMethod::Nagad->value], true)) {
+            $rules['payout_details'] = ['required', 'array'];
+            $rules['payout_details.account_number'] = ['required', 'string', 'regex:/\A01[3-9][0-9]{8}\z/D'];
+        }
+
+        return $rules;
     }
 
     /**

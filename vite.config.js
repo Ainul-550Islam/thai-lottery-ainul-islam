@@ -5,7 +5,7 @@ export default defineConfig({
     plugins: [
         laravel({
             input: [
-                'resources/css/app.css',
+                'resources/css/app.css', 'resources/css/gold-dashboard.css',
                 'resources/css/thailotto-theme.css',
                 'resources/css/lottery.css',
                 'resources/css/home.css',
@@ -42,6 +42,7 @@ export default defineConfig({
                 'resources/css/pages/blog.css',
                 'resources/css/pages/rewards.css',
         'resources/js/app.js',
+        'resources/js/gold-dashboard.js',
         // Page modules the app entry reaches (statically, or as a code-split
         // chunk). They are inputs as well, so `npm run build` always produces a
         // file for them even if a future refactor drops the import.
@@ -54,7 +55,6 @@ export default defineConfig({
         'resources/js/truemoney-redeem.js',
         'resources/js/slip-upload.js',
         'resources/js/legal-downloads.js',
-        'resources/js/layout/mobile-menu.js',
         'resources/js/public-pages.js',
         'resources/js/pages/about.js',
         'resources/js/pages/vision.js',

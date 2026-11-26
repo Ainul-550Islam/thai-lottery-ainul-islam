@@ -122,7 +122,7 @@ final class AuditAnchorTruthTest extends TestCase
 
     private function rel(string $path): string
     {
-        return substr($path, strlen(base_path()) + 1);
+        return str_replace(DIRECTORY_SEPARATOR, "/", substr($path, strlen(base_path()) + 1));
     }
 
     private function withdrawal(): Withdrawal

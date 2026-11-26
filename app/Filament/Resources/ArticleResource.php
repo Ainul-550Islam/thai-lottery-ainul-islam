@@ -10,6 +10,7 @@ use App\Filament\Resources\ArticleResource\Pages;
 use App\Models\Article;
 use App\Services\Content\ArticleService;
 use App\Support\Admin\AdminAccess;
+use App\Support\Admin\AdminPermission;
 use App\Support\SupportedLocale;
 use Filament\Forms;
 use Filament\Forms\Form;
@@ -59,7 +60,7 @@ final class ArticleResource extends Resource
      */
     public static function canViewAny(): bool
     {
-        return AdminAccess::current(AdminAccess::MANAGE_SYSTEM_SETTINGS);
+        return AdminAccess::permits(AdminPermission::SETTINGS_MANAGE);
     }
 
     public static function canView(\Illuminate\Database\Eloquent\Model $record): bool
@@ -69,12 +70,12 @@ final class ArticleResource extends Resource
 
     public static function canCreate(): bool
     {
-        return AdminAccess::current(AdminAccess::MANAGE_SYSTEM_SETTINGS);
+        return AdminAccess::permits(AdminPermission::SETTINGS_MANAGE);
     }
 
     public static function canEdit(\Illuminate\Database\Eloquent\Model $record): bool
     {
-        return AdminAccess::current(AdminAccess::MANAGE_SYSTEM_SETTINGS);
+        return AdminAccess::permits(AdminPermission::SETTINGS_MANAGE);
     }
 
     public static function canDelete(\Illuminate\Database\Eloquent\Model $record): bool

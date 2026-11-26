@@ -49,7 +49,9 @@ class BkashGateway extends AbstractPaymentGateway
     {
         // The merchant's actual callback authentication contract is not yet
         // implemented/verified. Credentials alone cannot make this complete.
-        return GatewayIntegrationStatus::PartiallyImplemented;
+        return $this->isManualMode()
+            ? GatewayIntegrationStatus::ConfiguredOnly
+            : GatewayIntegrationStatus::PartiallyImplemented;
     }
 
     public function supportsCurrency(Currency $currency): bool
@@ -57,10 +59,59 @@ class BkashGateway extends AbstractPaymentGateway
         return $currency === Currency::BDT;
     }
 
+    public function supportsDeposit(): bool
+    {
+        if (! parent::supportsDeposit()) {
+            return false;
+        }
+
+        return ! $this->isManualMode() || $this->manualMerchantNumber() !== null;
+    }
+
+    /** True when this gateway runs the operator-verified manual rail. */
+    private function isManualMode(): bool
+    {
+        return strtolower(trim((string) $this->config->get('payment.gateways.bkash.mode', 'api'))) === 'manual';
+    }
+
+    private function manualMerchantNumber(): ?string
+    {
+        $number = $this->config->get('payment.gateways.bkash.merchant_number');
+
+        return is_string($number) && preg_match('/\A01[3-9][0-9]{8}\z/D', trim($number)) === 1 ? trim($number) : null;
+    }
+
+    private function manualDepositResponse(Deposit $deposit): GatewayDepositResponse
+    {
+        $number = $this->manualMerchantNumber();
+        if ($number === null) {
+            return GatewayDepositResponse::failed('bKash manual deposit number is not configured.');
+        }
+
+        $name = trim((string) $this->config->get('payment.gateways.bkash.merchant_name', ''));
+
+        // No provider call is made and no callback is trusted: the deposit stays
+        // pending until an administrator verifies the TrxID and credits it.
+        return GatewayDepositResponse::manual(
+            providerReference: 'BKASH-MANUAL-'.$deposit->reference_number,
+            instructions: [
+                'bank_name' => 'bKash',
+                'account_number' => $number,
+                'account_name' => $name !== '' ? $name : null,
+                'instructions' => 'Send the exact amount to this bKash number, then submit your sender number and the bKash TrxID for this deposit.',
+                'reference' => $deposit->reference_number,
+            ],
+        );
+    }
+
     public function initiateDeposit(Deposit $deposit, array $options = []): GatewayDepositResponse
     {
         if ($deposit->currency !== Currency::BDT) {
             throw FinancialException::withCode('payment_gateway_currency_unsupported', trans('payment_ops.errors.payment_gateway_currency_unsupported'), ['gateway' => $this->name(), 'currency' => $deposit->currency->value]);
+        }
+
+        if ($this->isManualMode()) {
+            return $this->manualDepositResponse($deposit);
         }
 
         $appKey = $this->appKey();
@@ -148,6 +199,11 @@ class BkashGateway extends AbstractPaymentGateway
 
     public function verifyWebhookSignature(Request $request): bool
     {
+        if ($this->isManualMode()) {
+            // Manual rail: no provider callback is ever trusted or accepted.
+            return false;
+        }
+
         // This is a legacy compatibility check, not bKash SNS verification.
         // Never reuse the merchant API credential as a webhook secret.
         $secret = $this->webhookSecret();

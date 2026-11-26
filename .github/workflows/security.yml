@@ -7,6 +7,9 @@ on:
   schedule:
     - cron: '0 3 * * 1' # Run weekly Monday at 03:00 UTC
 
+permissions:
+  contents: read
+
 jobs:
   composer-audit:
     name: PHP Composer Security Audit
@@ -15,16 +18,17 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Setup PHP 8.3
+      - name: Setup PHP 8.4
         uses: shivammathur/setup-php@v2
         with:
-          php-version: '8.3'
+          php-version: '8.4'
+          extensions: gd, intl, pdo_mysql
           coverage: none
 
       - name: Audit PHP Dependencies
         run: |
           set -euo pipefail
-          composer audit --no-interaction
+          composer audit --locked --abandoned=fail --no-interaction
 
   npm-audit:
     name: Node NPM Security Audit
@@ -33,15 +37,19 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Setup Node 20
+      - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version-file: '.nvmrc'
+
+      - name: Activate pinned npm 11.21.1
+        run: npm install --global npm@11.21.1
 
       - name: Audit NPM Packages
         run: |
           set -euo pipefail
-          npm audit --audit-level=high
+          npm run test:dependencies
+          npm run security:dependencies
 
   secret-scan:
     name: Secrets & Credentials Leak Detection
@@ -56,8 +64,10 @@ jobs:
         run: |
           set -euo pipefail
           echo "Scanning for accidental secret leaks, private keys, and hardcoded tokens..."
-          # Reject committed private keys
-          if grep -rn "BEGIN RSA PRIVATE KEY" --exclude-dir={.git,node_modules,vendor,storage} .; then
+          # Reject committed private keys. The needle is the armoured PEM header
+          # (five dashes either side). Writing the bare words here would make
+          # this file, and every note that quotes them, match its own scan.
+          if grep -rIn -e '-----BEGIN [A-Z ]*PRIVATE KEY-----' --exclude-dir={.git,node_modules,vendor,storage} .; then
             echo "::error::Private key found in repository source!"
             exit 1
           fi
@@ -75,11 +85,11 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Setup PHP 8.3
+      - name: Setup PHP 8.4
         uses: shivammathur/setup-php@v2
         with:
-          php-version: '8.3'
-          extensions: mbstring, dom, fileinfo, sqlite3, pdo_sqlite, bcmath, sodium, zip
+          php-version: '8.4'
+          extensions: mbstring, dom, fileinfo, sqlite3, pdo_sqlite, pdo_mysql, bcmath, sodium, zip, gd, intl
           coverage: none
 
       - name: Install Dependencies

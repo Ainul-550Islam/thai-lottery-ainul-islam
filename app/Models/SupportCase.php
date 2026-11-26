@@ -15,6 +15,7 @@ use Illuminate\Support\Str;
 
 final class SupportCase extends Model
 {
+    /** @use HasFactory<\Database\Factories\SupportCaseFactory> */
     use HasFactory;
 
     public const STATUS_OPEN = 'open';

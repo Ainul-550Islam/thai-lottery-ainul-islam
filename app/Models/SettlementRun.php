@@ -111,11 +111,13 @@ class SettlementRun extends Model
         ];
     }
 
+    /** @return BelongsTo<Draw, $this> */
     public function draw(): BelongsTo
     {
         return $this->belongsTo(Draw::class);
     }
 
+    /** @return BelongsTo<User, $this> */
     public function starter(): BelongsTo
     {
         return $this->belongsTo(User::class, 'started_by');

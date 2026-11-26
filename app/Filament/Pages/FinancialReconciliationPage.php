@@ -8,6 +8,7 @@ use App\DTOs\Finance\FinancialReconciliationReport;
 use App\Enums\Currency;
 use App\Services\Finance\FinancialReconciliationService;
 use App\Support\Admin\AdminAccess;
+use App\Support\Admin\AdminPermission;
 use Filament\Pages\Page;
 use Illuminate\Support\Carbon;
 
@@ -36,9 +37,10 @@ class FinancialReconciliationPage extends Page
 
     public static function canAccess(): bool
     {
-        return AdminAccess::currentAny([
-            AdminAccess::RECONCILE_LEDGER,
-            AdminAccess::VIEW_FINANCIAL_REPORTS,
+        return AdminAccess::permitsAny([
+            AdminPermission::LEDGER_RECONCILE,
+            AdminPermission::LEDGER_VIEW,
+            AdminPermission::REPORTS_VIEW,
         ]);
     }
 

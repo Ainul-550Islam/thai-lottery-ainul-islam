@@ -200,7 +200,7 @@ class AuditLog extends Model
     /**
      * The actor, when the action was performed by a signed-in user.
      *
-     * @return BelongsTo<User, self>
+     * @return BelongsTo<User, $this>
      */
     public function user(): BelongsTo
     {
@@ -210,7 +210,7 @@ class AuditLog extends Model
     /**
      * The record the action was performed on.
      *
-     * @return MorphTo<Model, self>
+     * @return MorphTo<Model, $this>
      */
     public function auditable(): MorphTo
     {

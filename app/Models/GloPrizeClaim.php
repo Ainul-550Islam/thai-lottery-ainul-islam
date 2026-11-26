@@ -189,31 +189,37 @@ class GloPrizeClaim extends Model
         ];
     }
 
+    /** @return BelongsTo<GloTicket, $this> */
     public function ticket(): BelongsTo
     {
         return $this->belongsTo(GloTicket::class, 'ticket_id');
     }
 
+    /** @return BelongsTo<Draw, $this> */
     public function draw(): BelongsTo
     {
         return $this->belongsTo(Draw::class);
     }
 
+    /** @return BelongsTo<User, $this> */
     public function claimant(): BelongsTo
     {
         return $this->belongsTo(User::class, 'claimant_user_id');
     }
 
+    /** @return BelongsTo<User, $this> */
     public function reviewer(): BelongsTo
     {
         return $this->belongsTo(User::class, 'reviewed_by');
     }
 
+    /** @return HasMany<GloPrizePaymentHold, $this> */
     public function paymentHolds(): HasMany
     {
         return $this->hasMany(GloPrizePaymentHold::class, 'claim_id');
     }
 
+    /** @return HasOne<GloPrizePaymentHold, $this> */
     public function activePaymentHold(): HasOne
     {
         return $this->hasOne(GloPrizePaymentHold::class, 'claim_id')

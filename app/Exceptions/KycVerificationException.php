@@ -23,6 +23,8 @@ use Exception;
  *                               verification reference — a fork; replay
  *                               itself is free.
  * - KYC_NOT_FOUND             named user/document/verification missing.
+ * - KYC_SELF_REVIEW           the reviewer is the subject: maker-checker is
+ *                               not a courtesy, it is the rule.
  */
 final class KycVerificationException extends Exception
 {
@@ -37,6 +39,8 @@ final class KycVerificationException extends Exception
     public const CODE_DUPLICATE_DECISION = 'KYC_DUPLICATE_DECISION';
 
     public const CODE_NOT_FOUND = 'KYC_NOT_FOUND';
+
+    public const CODE_SELF_REVIEW = 'KYC_SELF_REVIEW';
 
     public function __construct(
         string $message,
@@ -88,6 +92,25 @@ final class KycVerificationException extends Exception
             sprintf('KYC refused: a different decision already carries reference [%s] — a fork, cried loudly', $reference),
             self::CODE_DUPLICATE_DECISION,
             $context + ['reference' => $reference],
+        );
+    }
+
+    /**
+     * Four-eyes: nobody decides their own identity evidence.
+     *
+     * This lives in the exception vocabulary because the rule now belongs to the document lane
+     * itself, not only to the screens that happen to call it.
+     */
+    public static function selfReview(int $reviewerUserId, string $documentReference): self
+    {
+        return new self(
+            sprintf(
+                'Maker-checker: reviewer #%d may not decide document [%s], because it is their own evidence.',
+                $reviewerUserId,
+                $documentReference,
+            ),
+            self::CODE_SELF_REVIEW,
+            ['reviewer_user_id' => $reviewerUserId, 'document' => $documentReference],
         );
     }
 

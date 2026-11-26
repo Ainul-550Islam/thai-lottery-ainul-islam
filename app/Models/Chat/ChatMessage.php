@@ -86,11 +86,13 @@ class ChatMessage extends Model
     // Relations
     // ========================================================================
 
+    /** @return BelongsTo<ChatConversation, $this> */
     public function conversation(): BelongsTo
     {
         return $this->belongsTo(ChatConversation::class, 'chat_conversation_id');
     }
 
+    /** @return BelongsTo<\App\Models\User, $this> */
     public function sender(): BelongsTo
     {
         return $this->belongsTo(\App\Models\User::class, 'sender_user_id');
@@ -102,6 +104,8 @@ class ChatMessage extends Model
 
     /**
      * Only what a visitor may be shown.
+     * @param  Builder<self>  $query
+     * @return Builder<self>
      */
     public function scopeVisibleToVisitor(Builder $query): Builder
     {
@@ -113,6 +117,8 @@ class ChatMessage extends Model
 
     /**
      * Only internal notes.
+     * @param  Builder<self>  $query
+     * @return Builder<self>
      */
     public function scopeInternalNotes(Builder $query): Builder
     {
@@ -123,6 +129,8 @@ class ChatMessage extends Model
      * Messages the given side has not read yet.
      *
      * Used by the unread counters and by "what did I miss" on resume.
+     * @param  Builder<self>  $query
+     * @return Builder<self>
      */
     public function scopeUnreadFor(Builder $query, ChatSenderType $reader): Builder
     {
@@ -137,6 +145,8 @@ class ChatMessage extends Model
      * Cursor by ID, not by timestamp: two messages can share a second, and
      * a timestamp cursor would either repeat one or skip one depending on
      * which microsecond the client happened to report.
+     * @param  Builder<self>  $query
+     * @return Builder<self>
      */
     public function scopeAfterId(Builder $query, int $afterId): Builder
     {
@@ -145,6 +155,8 @@ class ChatMessage extends Model
 
     /**
      * Rows the retention job may still redact.
+     * @param  Builder<self>  $query
+     * @return Builder<self>
      */
     public function scopeRedactable(Builder $query, Carbon $olderThan): Builder
     {

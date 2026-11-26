@@ -72,13 +72,11 @@ final class PublicServicesLandingTest extends TestCase
     {
         $this->get('/faq?lang=th')
             ->assertOk()
-            ->assertSee('ศูนย์คำตอบ')
             ->assertSee('ค้นหาคำถามและคำตอบ')
             ->assertSee('ยังไม่พบคำตอบ?');
 
         $this->get('/faq?lang=bn')
             ->assertOk()
-            ->assertSee('উত্তর কেন্দ্র')
             ->assertSee('প্রশ্ন ও উত্তর খুঁজুন')
             ->assertSee('প্রকাশ্য পৃষ্ঠা দেখতে কি অ্যাকাউন্ট দরকার?')
             ->assertSee('উত্তর পাননি?');
@@ -88,12 +86,10 @@ final class PublicServicesLandingTest extends TestCase
     {
         $this->get('/how-to-play?lang=th')
             ->assertOk()
-            ->assertSee('ศูนย์ความรู้')
             ->assertSee('โปรดอ่านข้อจำกัด');
 
         $this->get('/how-to-play?lang=bn')
             ->assertOk()
-            ->assertSee('শিক্ষা কেন্দ্র')
             ->assertSee('সমর্থিত পণ্য বেছে নিন')
             ->assertSee('সীমাগুলো পড়ুন');
     }

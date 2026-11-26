@@ -1,174 +1,1554 @@
-openapi: 3.1.0
+openapi: 3.0.3
 info:
-  title: Thai Lottery Enterprise Financial Ledger & Security Operations API
-  description: High-concurrency financial double-entry ledger, GLO 4-Eyes draw certification, PromptPay payments, agent hierarchy, and Phase 01–05 security suite API.
-  version: 2026.10.16
-  contact:
-    name: Security & Architecture Lead
-    email: secops@thai-lottery.internal
+  title: Player Experience API (Batch 3)
+  version: 1.0.0
+  description: |
+    Hand-written contract for the Batch 3 player surface. No generator and no
+    composer dependency is used (Rule 8).
 
+    SCOPE OF THIS FILE
+    Every route registered by Batch 3 is documented here: the bet slip, My Bets,
+    wallet overview and feed, profile overview, security overview and alerts,
+    notification preferences, support conversations, active promotions,
+    responsible-gaming summary, public compliance badges and the two health probes.
+
+    Routes belonging to Batch 1 and Batch 2 (for example anything under
+    /api/v1/games) are NOT present in the repository this file was written
+    against. `tests/Feature/Api/OpenApiCoverageTest.php` fails automatically the
+    day such a route is registered without an entry below, so the contract cannot
+    silently fall behind.
+
+    CONVENTIONS
+    - Money is ALWAYS a decimal string with two places ("1250.00"). Never a number.
+    - A value that is unknown is `null`. It is never a made-up zero and never a
+      demo figure.
+    - Success envelope: `{ "success": true, "message": string, "data": object, "meta"?: object }`.
+    - Error envelope: `{ "success": false, "message": string, "code": string }`
+      produced by `App\Support\ApiResponse::error(code, message, status)`.
+      That class is not part of the Batch 3 package: confirm the exact error key
+      name against it when generating a client.
+    - Authentication is a Sanctum bearer token. Every `/me/*` route also passes
+      the `active` middleware, so a suspended account receives 403.
 servers:
-  - url: https://api.thai-lottery.internal/api/v1
-    description: Production Cluster
-  - url: https://staging-api.thai-lottery.internal/api/v1
-    description: Staging Environment
-
+  - url: /
+    description: Same origin as the application.
+tags:
+  - name: BetSlip
+  - name: MyBets
+  - name: Wallet
+  - name: Profile
+  - name: Security
+  - name: Notifications
+  - name: Support
+  - name: Promotions
+  - name: Compliance
+  - name: Health
+security:
+  - bearerAuth: []
 paths:
-  /health:
+  /api/v1/me/bet-slip:
     get:
-      summary: Health & Readiness Probe
-      operationId: getHealth
-      tags: [System]
+      tags: [BetSlip]
+      operationId: getBetSlip
+      summary: Current draft slip with server-side pricing
+      description: |
+        Never creates a slip. With no draft the response carries `slip: null`
+        and an empty, priceable pricing block.
       responses:
         '200':
-          description: System operational
+          description: Draft slip (or none).
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  status: { type: string, example: UP }
-                  timestamp: { type: string, format: date-time }
-
-  /metrics:
-    get:
-      summary: Prometheus Operational Telemetry Metrics
-      operationId: getMetrics
-      tags: [System]
-      responses:
-        '200':
-          description: Prometheus exposition format
-          content:
-            text/plain:
-              schema:
-                type: string
-
-  /payments/promptpay/generate:
-    post:
-      summary: Generate Dynamic EMVCo PromptPay QR Code
-      operationId: generatePromptPayQr
-      tags: [Payments]
-      security:
-        - BearerAuth: []
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              required: [amount]
-              properties:
-                amount: { type: number, minimum: 1.0, maximum: 500000.0, example: 150.0 }
-                recipient_id: { type: string, example: "0812345678" }
-      responses:
-        '200':
-          description: QR Payload Generated
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  success: { type: boolean, example: true }
-                  data:
-                    type: object
-                    properties:
-                      reference_id: { type: string }
-                      amount: { type: string, example: "150.00" }
-                      currency: { type: string, example: "THB" }
-                      qr_raw_payload: { type: string }
-                      expires_at: { type: string, format: date-time }
-
-  /orders/place:
-    post:
-      summary: Place Batch Lottery Ticket Order with Redlock & HMAC
-      operationId: placeOrder
-      tags: [Lottery Orders]
-      security:
-        - BearerAuth: []
-      parameters:
-        - name: X-Idempotency-Key
-          in: header
-          required: true
-          schema: { type: string, format: uuid }
-        - name: X-Signature
-          in: header
-          required: true
-          schema: { type: string }
-        - name: X-Auth-Timestamp
-          in: header
-          required: true
-          schema: { type: string }
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              required: [idempotency_key, draw_id, entries]
-              properties:
-                idempotency_key: { type: string, format: uuid }
-                draw_id: { type: string, example: "GLO-20261016-01" }
-                agent_id: { type: string }
-                entries:
-                  type: array
-                  items:
-                    type: object
-                    required: [number, bet_type, amount]
-                    properties:
-                      number: { type: string, example: "000123" }
-                      bet_type: { type: string, enum: [6D_OFFICIAL, 3D_DIRECT, 3D_TOAD, 2D_TOP, 2D_BOTTOM, RUNNING_TOP, RUNNING_BOTTOM] }
-                      amount: { type: string, example: "80.0000" }
-      responses:
-        '201':
-          description: Order placed and debited from double-entry ledger
+                $ref: '#/components/schemas/BetSlipEnvelope'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
         '403':
-          description: Automated bot or blocklisted IP rejected
-        '422':
-          description: Validation error or insufficient balance
-
-  /admin/security/overview:
-    get:
-      summary: Security Operations Center (SOC) Telemetry
-      operationId: getSecurityOverview
-      tags: [Admin Security]
-      security:
-        - BearerAuth: []
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+    delete:
+      tags: [BetSlip]
+      operationId: clearBetSlip
+      summary: Remove every selection from the draft slip
       responses:
         '200':
-          description: Overview metrics
-
-  /admin/security/ip-blocks:
-    get:
-      summary: List Active IP & Subnet Blocks
-      operationId: listIpBlocks
-      tags: [Admin Security]
-      security:
-        - BearerAuth: []
+          description: Slip cleared.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BetSlipEnvelope'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+  /api/v1/me/bet-slip/items:
     post:
-      summary: Block an Offending IP or CIDR Subnet
-      operationId: createIpBlock
-      tags: [Admin Security]
-      security:
-        - BearerAuth: []
+      tags: [BetSlip]
+      operationId: addBetSlipItem
+      summary: Add a selection (or raise the stake of an identical one)
+      description: |
+        The selection is validated against the markets the project actually
+        sells. Unknown games are refused with `game_not_available`; the
+        mockup-only "GLO L6 2D/3D direct bet" is refused with
+        `game_not_implemented`. Only `wallet` funding is accepted in this
+        release. Totals and potential win are computed by the server; any
+        client-supplied total, status or payout is rejected as prohibited.
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              type: object
-              required: [ip_or_cidr, reason_code]
-              properties:
-                ip_or_cidr: { type: string, example: "198.51.100.0/24" }
-                reason_code: { type: string, enum: [BRUTE_FORCE, REPEATED_AUTH_FAIL, FRAUD_ATTEMPT, BOT_ABUSE, MANUAL_ADMIN, THREAT_FEED] }
-                duration_minutes: { type: integer, example: 1440 }
-                notes: { type: string }
+              $ref: '#/components/schemas/AddBetSlipItemRequest'
       responses:
         '201':
-          description: Block rule created and cached in Redis
+          description: Selection added or merged into an existing line.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BetSlipItemAddedEnvelope'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '422':
+          $ref: '#/components/responses/Unprocessable'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+  /api/v1/me/bet-slip/items/{item}:
+    delete:
+      tags: [BetSlip]
+      operationId: removeBetSlipItem
+      summary: Remove one selection
+      parameters:
+        - name: item
+          in: path
+          required: true
+          schema:
+            type: integer
+            minimum: 1
+      responses:
+        '200':
+          description: Selection removed.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BetSlipEnvelope'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+  /api/v1/me/bet-slip/confirm:
+    post:
+      tags: [BetSlip]
+      operationId: confirmBetSlip
+      summary: Buy every selection on the slip, or none
+      description: |
+        Single database transaction. Each selection is re-validated and bought
+        through the existing purchase pipeline; if any one is refused the whole
+        confirm rolls back and the wallet is untouched.
 
+        IDEMPOTENCY: send `Idempotency-Key` (8-96 characters of letters, digits,
+        colon, dash, underscore). A replay of an already-confirmed key returns
+        200 with `replayed: true` and buys nothing. The same value may be sent
+        as `idempotency_key` in the body; the header wins. A request with
+        neither is refused with 400 `invalid_idempotency_key`.
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ConfirmBetSlipRequest'
+      responses:
+        '200':
+          description: Replay of an already-confirmed key. Nothing was bought.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BetSlipConfirmedEnvelope'
+        '201':
+          description: Slip confirmed and bets placed.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BetSlipConfirmedEnvelope'
+        '400':
+          description: Missing or malformed idempotency key (`invalid_idempotency_key`).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          description: No open slip (`no_active_slip`).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '409':
+          description: The slip expired (`slip_expired`).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '422':
+          description: |
+            Refused: `slip_empty`, `funding_source_unavailable`,
+            `item_missing_draw` or `purchase_refused`. Nothing was charged.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+  /api/v1/me/bets:
+    get:
+      tags: [MyBets]
+      operationId: listMyBets
+      summary: The member's bets, filtered by tab
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [all, pending, confirmed, cancelled, winning]
+            default: all
+        - name: from
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: to
+          in: query
+          description: Must be on or after `from`.
+          schema:
+            type: string
+            format: date
+        - name: per_page
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+        - name: page
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+      responses:
+        '200':
+          description: One page of bets. `winning` means settled with a payout above zero.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MyBetsEnvelope'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '422':
+          $ref: '#/components/responses/Unprocessable'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+  /api/v1/me/bets/counts:
+    get:
+      tags: [MyBets]
+      operationId: getMyBetCounts
+      summary: The five tab counts from one grouped query
+      description: The counts equal the totals of the corresponding filtered lists.
+      parameters:
+        - name: from
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: to
+          in: query
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: Tab counts.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MyBetCountsEnvelope'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '422':
+          $ref: '#/components/responses/Unprocessable'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+  /api/v1/me/bets/{bet}:
+    get:
+      tags: [MyBets]
+      operationId: getMyBet
+      summary: One bet with its draw and result
+      description: |
+        A bet that belongs to someone else returns 404, identical to one that
+        does not exist, so an identifier probe learns nothing.
+      parameters:
+        - name: bet
+          in: path
+          required: true
+          description: Bet id or bet number.
+          schema:
+            type: string
+      responses:
+        '200':
+          description: The bet.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MyBetEnvelope'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+  /api/v1/me/wallet/overview:
+    get:
+      tags: [Wallet]
+      operationId: getWalletOverview
+      summary: Four balances, 7-day trend and an optional display-only FX figure
+      description: |
+        Read-only. `cashback` is null when no cashback reader is installed.
+        `trend.percent` is null without a snapshot at the horizon or when the
+        baseline is zero. `fx` is null unless the operator enabled it and a
+        fresh snapshot exists; it is APPROXIMATE and is never used to move money.
+      responses:
+        '200':
+          description: Wallet overview.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WalletOverviewEnvelope'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+  /api/v1/me/wallet/transactions:
+    get:
+      tags: [Wallet]
+      operationId: listWalletTransactions
+      summary: Unified ledger feed with cursor pagination
+      parameters:
+        - name: type
+          in: query
+          schema:
+            type: string
+            description: '`all` or one of the WalletFeedType filter values.'
+            default: all
+        - name: from
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: to
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: per_page
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+        - name: cursor
+          in: query
+          schema:
+            type: string
+            maxLength: 255
+      responses:
+        '200':
+          description: One page of feed items.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WalletFeedEnvelope'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '422':
+          $ref: '#/components/responses/Unprocessable'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+  /api/v1/me/profile/overview:
+    get:
+      tags: [Profile]
+      operationId: getProfileOverview
+      summary: Masked personal info, verification statuses and balances
+      responses:
+        '200':
+          description: Profile overview.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProfileOverviewEnvelope'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+  /api/v1/me/security/overview:
+    get:
+      tags: [Security]
+      operationId: getSecurityOverview
+      summary: Score computed from real checks, plus device and session counts
+      description: |
+        score = sum of the configured weights of the checks that passed. The
+        score can reach 100 percent only when every check passes.
+      responses:
+        '200':
+          description: Security overview.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SecurityOverviewEnvelope'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+  /api/v1/me/security/alerts:
+    get:
+      tags: [Security]
+      operationId: listSecurityAlerts
+      summary: Alerts projected from existing security events
+      responses:
+        '200':
+          description: Alerts.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SecurityAlertsEnvelope'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+  /api/v1/me/notification-preferences:
+    get:
+      tags: [Notifications]
+      operationId: getNotificationPreferences
+      summary: Preference matrix with mandatory categories flagged
+      responses:
+        '200':
+          description: Preferences.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotificationPreferencesEnvelope'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+    put:
+      tags: [Notifications]
+      operationId: updateNotificationPreferences
+      summary: Update preferences
+      description: |
+        A mandatory category (security, deposit/withdrawal status, KYC,
+        responsible gaming, account restriction) can never be disabled. The
+        attempt is refused with 422 `mandatory_category`.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateNotificationPreferencesRequest'
+      responses:
+        '200':
+          description: Updated matrix.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotificationPreferencesEnvelope'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '422':
+          $ref: '#/components/responses/Unprocessable'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+  /api/v1/me/support/conversations:
+    get:
+      tags: [Support]
+      operationId: listSupportConversations
+      summary: The member's own conversations
+      responses:
+        '200':
+          description: Conversations.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SupportConversationsEnvelope'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+    post:
+      tags: [Support]
+      operationId: openSupportConversation
+      summary: Open a conversation (respects the configured open-conversation cap)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OpenSupportConversationRequest'
+      responses:
+        '201':
+          description: Conversation opened.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SupportConversationEnvelope'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '422':
+          $ref: '#/components/responses/Unprocessable'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+  /api/v1/me/support/conversations/{id}/messages:
+    get:
+      tags: [Support]
+      operationId: listSupportMessages
+      summary: Messages in the member's own conversation
+      parameters:
+        - $ref: '#/components/parameters/ConversationId'
+      responses:
+        '200':
+          description: Messages.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SupportMessagesEnvelope'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+    post:
+      tags: [Support]
+      operationId: sendSupportMessage
+      summary: Send a message
+      parameters:
+        - $ref: '#/components/parameters/ConversationId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SendSupportMessageRequest'
+      responses:
+        '201':
+          description: Message accepted.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SupportMessageEnvelope'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '422':
+          $ref: '#/components/responses/Unprocessable'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+  /api/v1/me/support/conversations/{id}/rating:
+    post:
+      tags: [Support]
+      operationId: rateSupportConversation
+      summary: Rate a conversation once
+      parameters:
+        - $ref: '#/components/parameters/ConversationId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RateSupportConversationRequest'
+      responses:
+        '200':
+          description: Rating stored.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SupportConversationEnvelope'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '422':
+          $ref: '#/components/responses/Unprocessable'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+  /api/v1/me/promotions/active:
+    get:
+      tags: [Promotions]
+      operationId: listActivePromotions
+      summary: Active points-multiplier campaigns and public bonuses
+      description: An empty list is the honest answer when nothing is running.
+      responses:
+        '200':
+          description: Active promotions.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ActivePromotionsEnvelope'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+  /api/v1/me/responsible-gaming/summary:
+    get:
+      tags: [Compliance]
+      operationId: getResponsibleGamingSummary
+      summary: Read-only summary of limits and self-exclusion
+      description: There is no write path on this endpoint.
+      responses:
+        '200':
+          description: Summary.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenericEnvelope'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+  /api/v1/public/compliance-badges:
+    get:
+      tags: [Compliance]
+      operationId: getComplianceBadges
+      summary: Attestation-backed badges and the two policy notices
+      description: |
+        No authentication. A badge appears only when a valid, non-revoked
+        attestation with reference and document hash backs it. With no
+        attestation the `badges` array is empty.
+      security: []
+      responses:
+        '200':
+          description: Badges and notices.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ComplianceBadgesEnvelope'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+  /health/live:
+    get:
+      tags: [Health]
+      operationId: healthLive
+      summary: Liveness probe (process is up)
+      description: Touches no dependency. No authentication; rate-limited.
+      security: []
+      responses:
+        '200':
+          description: Process is up.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthLive'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+  /health/ready:
+    get:
+      tags: [Health]
+      operationId: healthReady
+      summary: Readiness probe
+      description: |
+        Database, cache, queue, a fresh scheduler heartbeat, and the CONFIG
+        status of the payment and result providers. Returns 503 when any check
+        fails. The body carries a closed vocabulary of reason codes and never a
+        secret, host, DSN or member data.
+      security: []
+      responses:
+        '200':
+          description: Ready.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthReady'
+        '503':
+          description: Not ready.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthReady'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
 components:
   securitySchemes:
-    BearerAuth:
+    bearerAuth:
       type: http
       scheme: bearer
-      bearerFormat: SanctumToken
+      bearerFormat: Sanctum personal access token
+  parameters:
+    IdempotencyKey:
+      name: Idempotency-Key
+      in: header
+      required: true
+      description: 8-96 characters; letters, digits, colon, dash, underscore.
+      schema:
+        type: string
+        minLength: 8
+        maxLength: 96
+        pattern: '^[A-Za-z0-9:_\-]+$'
+    ConversationId:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: string
+  responses:
+    Unauthenticated:
+      description: Missing or invalid bearer token.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorEnvelope'
+    Forbidden:
+      description: The account is not active.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorEnvelope'
+    NotFound:
+      description: Not found, or not owned by the caller.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorEnvelope'
+    Unprocessable:
+      description: |
+        Validation failed or a business rule refused the request. The `code`
+        names the rule (for example `game_not_available`, `game_not_implemented`,
+        `funding_source_unsupported`, `mandatory_category`).
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorEnvelope'
+    TooManyRequests:
+      description: Rate limit exceeded.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorEnvelope'
+  schemas:
+    Money:
+      type: string
+      pattern: '^-?\d+\.\d{2}$'
+      example: '1250.00'
+      description: Decimal string, two places. Never a JSON number.
+    ErrorEnvelope:
+      type: object
+      required: [success, message]
+      properties:
+        success:
+          type: boolean
+          enum: [false]
+        message:
+          type: string
+        code:
+          type: string
+          description: Stable machine-readable reason.
+    GenericEnvelope:
+      type: object
+      required: [success, message, data]
+      properties:
+        success:
+          type: boolean
+          enum: [true]
+        message:
+          type: string
+        data:
+          type: object
+          additionalProperties: true
+        meta:
+          type: object
+          additionalProperties: true
+    BetSlip:
+      type: object
+      properties:
+        id:
+          type: integer
+        reference:
+          type: string
+        status:
+          type: string
+          enum: [draft, confirmed, expired]
+        currency:
+          type: string
+        item_count:
+          type: integer
+        total_stake:
+          $ref: '#/components/schemas/Money'
+        expires_at:
+          type: string
+          format: date-time
+          nullable: true
+        confirmed_at:
+          type: string
+          format: date-time
+          nullable: true
+        confirmed_reference:
+          type: string
+          nullable: true
+        editable:
+          type: boolean
+    BetSlipPricing:
+      type: object
+      properties:
+        currency:
+          type: string
+        items:
+          type: array
+          items:
+            type: object
+            additionalProperties: true
+        total_stake:
+          $ref: '#/components/schemas/Money'
+        total_potential_win:
+          $ref: '#/components/schemas/Money'
+        provisional:
+          type: boolean
+        priceable:
+          type: boolean
+    BetSlipEnvelope:
+      type: object
+      properties:
+        success:
+          type: boolean
+        message:
+          type: string
+        data:
+          type: object
+          properties:
+            slip:
+              allOf:
+                - $ref: '#/components/schemas/BetSlip'
+              nullable: true
+            pricing:
+              $ref: '#/components/schemas/BetSlipPricing'
+            max_items:
+              type: integer
+    BetSlipItemAddedEnvelope:
+      type: object
+      properties:
+        success:
+          type: boolean
+        message:
+          type: string
+        data:
+          type: object
+          properties:
+            slip:
+              $ref: '#/components/schemas/BetSlip'
+            pricing:
+              $ref: '#/components/schemas/BetSlipPricing'
+            merged:
+              type: boolean
+    BetSlipConfirmedEnvelope:
+      type: object
+      properties:
+        success:
+          type: boolean
+        message:
+          type: string
+        data:
+          type: object
+          properties:
+            slip:
+              $ref: '#/components/schemas/BetSlip'
+            bets:
+              type: array
+              items:
+                type: object
+                properties:
+                  bet_number:
+                    type: string
+                  bet_id:
+                    type: integer
+                  game_code:
+                    type: string
+                  number:
+                    type: string
+                  stake:
+                    $ref: '#/components/schemas/Money'
+                  status:
+                    type: string
+                  potential_payout:
+                    $ref: '#/components/schemas/Money'
+                  ticket_number:
+                    type: string
+                    nullable: true
+            total_stake:
+              $ref: '#/components/schemas/Money'
+            replayed:
+              type: boolean
+    AddBetSlipItemRequest:
+      type: object
+      required: [game_code, bet_type, number, stake]
+      properties:
+        game_code:
+          type: string
+          maxLength: 40
+        bet_type:
+          type: string
+          maxLength: 24
+        number:
+          type: string
+          maxLength: 12
+          description: A string so leading zeros survive ("007").
+        stake:
+          type: string
+          maxLength: 24
+          description: Exact decimal string; a JSON number is refused.
+        funding_source:
+          type: string
+          enum: [wallet]
+        draw_id:
+          type: integer
+          minimum: 1
+        free_bet_voucher_reference:
+          type: string
+          maxLength: 64
+          description: Accepted by the schema, refused by the service in this release.
+    ConfirmBetSlipRequest:
+      type: object
+      properties:
+        idempotency_key:
+          type: string
+          minLength: 8
+          maxLength: 96
+          description: Alternative to the header; the header wins.
+    MyBet:
+      type: object
+      properties:
+        id:
+          type: integer
+        bet_number:
+          type: string
+        status:
+          type: string
+        type:
+          type: string
+          nullable: true
+        currency:
+          type: string
+        stake:
+          $ref: '#/components/schemas/Money'
+        potential_payout:
+          $ref: '#/components/schemas/Money'
+        actual_payout:
+          $ref: '#/components/schemas/Money'
+        is_winning:
+          type: boolean
+        draw:
+          type: object
+          nullable: true
+          properties:
+            id:
+              type: integer
+            draw_number:
+              type: string
+            status:
+              type: string
+              nullable: true
+            scheduled_at:
+              type: string
+              format: date-time
+              nullable: true
+        created_at:
+          type: string
+          format: date-time
+          nullable: true
+    MyBetsEnvelope:
+      type: object
+      properties:
+        success:
+          type: boolean
+        message:
+          type: string
+        data:
+          type: object
+          properties:
+            bets:
+              type: array
+              items:
+                $ref: '#/components/schemas/MyBet'
+        meta:
+          type: object
+          properties:
+            filter:
+              type: string
+            pagination:
+              type: object
+              properties:
+                total:
+                  type: integer
+                per_page:
+                  type: integer
+                current_page:
+                  type: integer
+                last_page:
+                  type: integer
+    MyBetEnvelope:
+      type: object
+      properties:
+        success:
+          type: boolean
+        message:
+          type: string
+        data:
+          type: object
+          additionalProperties: true
+    MyBetCountsEnvelope:
+      type: object
+      properties:
+        success:
+          type: boolean
+        message:
+          type: string
+        data:
+          type: object
+          properties:
+            counts:
+              type: object
+              properties:
+                all:
+                  type: integer
+                pending:
+                  type: integer
+                confirmed:
+                  type: integer
+                cancelled:
+                  type: integer
+                winning:
+                  type: integer
+    WalletOverviewEnvelope:
+      type: object
+      properties:
+        success:
+          type: boolean
+        message:
+          type: string
+        data:
+          type: object
+          properties:
+            wallet:
+              type: object
+              properties:
+                currency:
+                  type: string
+                balances:
+                  type: object
+                  properties:
+                    main:
+                      $ref: '#/components/schemas/Money'
+                    win:
+                      $ref: '#/components/schemas/Money'
+                    bonus:
+                      $ref: '#/components/schemas/Money'
+                    cashback:
+                      allOf:
+                        - $ref: '#/components/schemas/Money'
+                      nullable: true
+                cashback_available:
+                  type: boolean
+                trend:
+                  type: object
+                  properties:
+                    days:
+                      type: integer
+                    percent:
+                      type: string
+                      nullable: true
+                    available:
+                      type: boolean
+                    baseline:
+                      type: string
+                      nullable: true
+                    baseline_date:
+                      type: string
+                      nullable: true
+                fx:
+                  type: object
+                  nullable: true
+                  description: |
+                    DISPLAY ONLY. Carries `approximate: true` and `captured_at`.
+                    Null when disabled, missing or older than the configured age.
+                  additionalProperties: true
+                fx_enabled:
+                  type: boolean
+                generated_at:
+                  type: string
+                  nullable: true
+    WalletFeedItem:
+      type: object
+      properties:
+        id:
+          type: integer
+        reference:
+          type: string
+        type:
+          type: string
+        label:
+          type: string
+        direction:
+          type: string
+          enum: [credit, debit]
+        amount:
+          $ref: '#/components/schemas/Money'
+        currency:
+          type: string
+        status:
+          type: string
+        description:
+          type: string
+          nullable: true
+        created_at:
+          type: string
+          nullable: true
+    WalletFeedEnvelope:
+      type: object
+      properties:
+        success:
+          type: boolean
+        message:
+          type: string
+        data:
+          type: object
+          properties:
+            transactions:
+              type: array
+              items:
+                $ref: '#/components/schemas/WalletFeedItem'
+        meta:
+          type: object
+          properties:
+            filter:
+              type: string
+            pagination:
+              type: object
+              properties:
+                next_cursor:
+                  type: string
+                  nullable: true
+                prev_cursor:
+                  type: string
+                  nullable: true
+                per_page:
+                  type: integer
+    ProfileOverviewEnvelope:
+      type: object
+      properties:
+        success:
+          type: boolean
+        message:
+          type: string
+        data:
+          type: object
+          additionalProperties: true
+    SecurityOverviewEnvelope:
+      type: object
+      properties:
+        success:
+          type: boolean
+        message:
+          type: string
+        data:
+          type: object
+          properties:
+            score:
+              type: integer
+            max_score:
+              type: integer
+            score_percent:
+              type: integer
+              minimum: 0
+              maximum: 100
+            label:
+              type: string
+            all_checks_passed:
+              type: boolean
+            checks:
+              type: array
+              items:
+                type: object
+                properties:
+                  key:
+                    type: string
+                    enum: [two_factor, email_verified, phone_verified, kyc_verified, no_suspicious_activity]
+                  label:
+                    type: string
+                  hint:
+                    type: string
+                  passed:
+                    type: boolean
+                  weight:
+                    type: integer
+                  remediation_path:
+                    type: string
+                    nullable: true
+            trusted_devices:
+              type: integer
+            active_sessions:
+              type: integer
+            recent_logins:
+              type: array
+              items:
+                type: object
+                additionalProperties: true
+            generated_at:
+              type: string
+              nullable: true
+    SecurityAlertsEnvelope:
+      type: object
+      properties:
+        success:
+          type: boolean
+        message:
+          type: string
+        data:
+          type: object
+          additionalProperties: true
+    NotificationPreferencesEnvelope:
+      type: object
+      properties:
+        success:
+          type: boolean
+        message:
+          type: string
+        data:
+          type: object
+          properties:
+            preferences:
+              type: array
+              items:
+                type: object
+                properties:
+                  event_type:
+                    type: string
+                  label:
+                    type: string
+                  category:
+                    type: string
+                  channel:
+                    type: string
+                  enabled:
+                    type: boolean
+                  mandatory:
+                    type: boolean
+                  locked:
+                    type: boolean
+                  reason:
+                    type: string
+                    nullable: true
+                  quiet_hours:
+                    type: object
+                    nullable: true
+            mandatory_categories:
+              type: array
+              items:
+                type: string
+    UpdateNotificationPreferencesRequest:
+      type: object
+      required: [preferences]
+      properties:
+        preferences:
+          type: array
+          minItems: 1
+          maxItems: 200
+          items:
+            type: object
+            required: [event_type, channel, enabled]
+            properties:
+              event_type:
+                type: string
+              channel:
+                type: string
+              enabled:
+                type: boolean
+              quiet_hours:
+                type: object
+                nullable: true
+                properties:
+                  start:
+                    type: string
+                    pattern: '^\d{2}:\d{2}$'
+                  end:
+                    type: string
+                    pattern: '^\d{2}:\d{2}$'
+    SupportConversation:
+      type: object
+      properties:
+        id:
+          type: integer
+        reference:
+          type: string
+          nullable: true
+        status:
+          type: string
+        priority:
+          type: string
+          nullable: true
+        subject:
+          type: string
+          nullable: true
+        message_count:
+          type: integer
+        unread_count:
+          type: integer
+        last_message_at:
+          type: string
+          format: date-time
+          nullable: true
+        closed_at:
+          type: string
+          format: date-time
+          nullable: true
+        rating:
+          type: integer
+          nullable: true
+        rated_at:
+          type: string
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+          nullable: true
+    SupportConversationsEnvelope:
+      type: object
+      properties:
+        success:
+          type: boolean
+        message:
+          type: string
+        data:
+          type: object
+          properties:
+            conversations:
+              type: array
+              items:
+                $ref: '#/components/schemas/SupportConversation'
+    SupportConversationEnvelope:
+      type: object
+      properties:
+        success:
+          type: boolean
+        message:
+          type: string
+        data:
+          type: object
+          additionalProperties: true
+    SupportMessage:
+      type: object
+      properties:
+        id:
+          type: integer
+        sender_type:
+          type: string
+        kind:
+          type: string
+        body:
+          type: string
+        read_at:
+          type: string
+          format: date-time
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+          nullable: true
+    SupportMessagesEnvelope:
+      type: object
+      properties:
+        success:
+          type: boolean
+        message:
+          type: string
+        data:
+          type: object
+          properties:
+            messages:
+              type: array
+              items:
+                $ref: '#/components/schemas/SupportMessage'
+    SupportMessageEnvelope:
+      type: object
+      properties:
+        success:
+          type: boolean
+        message:
+          type: string
+        data:
+          type: object
+          additionalProperties: true
+    OpenSupportConversationRequest:
+      type: object
+      required: [subject]
+      properties:
+        subject:
+          type: string
+          minLength: 3
+          maxLength: 190
+        message:
+          type: string
+          description: Length cap comes from player_experience.support.max_message_length.
+    SendSupportMessageRequest:
+      type: object
+      required: [body]
+      properties:
+        body:
+          type: string
+          minLength: 1
+        client_token:
+          type: string
+          maxLength: 64
+    RateSupportConversationRequest:
+      type: object
+      required: [rating]
+      properties:
+        rating:
+          type: integer
+          description: Range comes from player_experience.support.rating_min and rating_max (default 1-5). Once per conversation.
+        comment:
+          type: string
+          maxLength: 500
+    ActivePromotionsEnvelope:
+      type: object
+      properties:
+        success:
+          type: boolean
+        message:
+          type: string
+        data:
+          type: object
+          additionalProperties: true
+    ComplianceBadgesEnvelope:
+      type: object
+      properties:
+        success:
+          type: boolean
+        message:
+          type: string
+        data:
+          type: object
+          properties:
+            badges:
+              type: array
+              items:
+                type: object
+                properties:
+                  key:
+                    type: string
+                  label:
+                    type: string
+                  attested:
+                    type: boolean
+                  code:
+                    type: string
+                    nullable: true
+                  reference:
+                    type: string
+                    nullable: true
+                  issuer:
+                    type: string
+                    nullable: true
+                  valid_from:
+                    type: string
+                    nullable: true
+                  valid_to:
+                    type: string
+                    nullable: true
+                  document_hash:
+                    type: string
+                    nullable: true
+                  evidence_on_file:
+                    type: boolean
+            notices:
+              type: array
+              items:
+                type: object
+                additionalProperties: true
+    HealthLive:
+      type: object
+      required: [status, timestamp]
+      properties:
+        status:
+          type: string
+          enum: [UP]
+        timestamp:
+          type: string
+          format: date-time
+    HealthReady:
+      type: object
+      required: [ready, status, checks, timestamp]
+      properties:
+        ready:
+          type: boolean
+        status:
+          type: string
+        checks:
+          type: object
+          description: |
+            Keys: database, cache, queue, scheduler, payment_provider_config,
+            result_provider_config.
+          additionalProperties:
+            type: object
+            properties:
+              ok:
+                type: boolean
+              reason:
+                type: string
+                nullable: true
+        timestamp:
+          type: string
+          format: date-time

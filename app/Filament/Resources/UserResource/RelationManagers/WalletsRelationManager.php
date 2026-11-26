@@ -8,6 +8,7 @@ use App\Enums\WalletStatus;
 use App\Enums\WalletType;
 use App\Models\Wallet;
 use App\Support\Admin\AdminAccess;
+use App\Support\Admin\AdminPermission;
 use App\Support\Admin\AdminFormat;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Tables;
@@ -43,9 +44,9 @@ class WalletsRelationManager extends RelationManager
     {
         // Seeing someone's balance is a financial disclosure, so it needs a financial
         // permission on top of the identity one that opened the page.
-        return AdminAccess::currentAny([
-            AdminAccess::MANAGE_USERS,
-            AdminAccess::VIEW_TRANSACTION_HISTORY,
+        return AdminAccess::permitsAny([
+            AdminPermission::USERS_VIEW,
+            AdminPermission::WALLETS_VIEW,
         ]);
     }
 

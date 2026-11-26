@@ -6,6 +6,7 @@ namespace App\Http\Controllers;
 
 use App\Enums\DrawStatus;
 use App\Enums\GloSourceState;
+use App\Services\PublicPages\PublishedResultSourceResolver;
 use App\Models\Draw;
 use App\Models\DrawResult;
 use App\Services\PublicPages\ResultsPageService;
@@ -78,15 +79,7 @@ class ResultsController
                 }
 
                 $meta = is_array($res->metadata) ? $res->metadata : [];
-                $lane = is_array($meta['glo'] ?? null) ? $meta['glo'] : [];
-                $provider = strtolower(trim((string) ($lane['import_provider'] ?? '')));
-
-                $sourceState = match ($provider) {
-                    'official', 'official_api', 'official_scraper', 'glo_official' => GloSourceState::OfficialSourceVerified,
-                    'fixture', 'fixture_only' => GloSourceState::FixtureOnly,
-                    'internal', 'manual', 'admin_entry' => GloSourceState::InternalReconciled,
-                    default => GloSourceState::Unavailable,
-                };
+                $sourceState = app(PublishedResultSourceResolver::class)->resolve($draw, $res);
 
                 $results[] = [
                     'draw_number' => (string) $draw->draw_number,
