@@ -2,6 +2,7 @@
 @extends('layouts.app')
 
 @section('title', 'Dashboard')
+@section('meta_robots', 'noindex, nofollow')
 @section('gd_mode', 'dashboard')
 @section('gd_endpoint', $r('api.v1.player.dashboard', ''))
 
@@ -27,6 +28,12 @@
                     <div>
                         <h3><span data-bind="live.game"></span> <span class="gd-g" data-bind="live.name"></span></h3>
                         <p>Draw No. <span data-bind="live.drawNo"></span></p><p data-bind="live.label"></p>
+                        @if (($state['live'] ?? null) === null)
+                            <p class="gd-empty">Not scheduled</p>
+                        @endif
+                        @if ($bettingClosesAt ?? null)
+                            <p id="draw-countdown" data-closes-at="{{ $bettingClosesAt->toIso8601String() }}">Betting closes <time datetime="{{ $bettingClosesAt->toIso8601String() }}">{{ $bettingClosesAt->format('D, M d, H:i') }}</time></p>
+                        @endif
                         <div class="gd-cd" id="gd-cd" role="timer"><div data-p>00<small>Hrs</small></div><b>:</b><div data-p>00<small>Min</small></div><b>:</b><div data-p>00<small>Sec</small></div></div>
                         <a class="gd-btn" href="{{ $r('player.draws') }}">View Details <svg class="ic"><use href="#i-arrow"/></svg></a>
                     </div>
@@ -35,7 +42,7 @@
             <section class="gd-c" aria-labelledby="gd-h2">
                 <h2 class="gd-h" id="gd-h2"><svg class="ic"><use href="#i-trophy"/></svg>Latest Results <a class="gd-more" href="{{ $r('results.index') }}">View All →</a></h2>
                 <div class="gd-tabs" id="gd-tabs" role="tablist"></div>
-                <div class="gd-res"><div class="w"><p class="n"><span id="gd-rn"></span> <span class="gd-g" id="gd-rno"></span></p><p id="gd-rd"></p><div class="gd-balls" id="gd-rb"></div><span class="gd-nx"><svg class="ic gd-g"><use href="#i-clock"/></svg><span id="gd-rx"></span></span></div><img class="gd-cage" src="{{ asset('images/gd/cage.png') }}" alt=""></div>
+                <div class="gd-res"><div class="w"><p class="n"><span id="gd-rn"></span> <span class="gd-g" id="gd-rno"></span></p><p id="gd-rd"></p><div class="gd-balls" id="gd-rb"></div>@if (($state['results'] ?? []) === [])<p class="gd-empty">Not recorded</p>@endif<span class="gd-nx"><svg class="ic gd-g"><use href="#i-clock"/></svg><span id="gd-rx"></span></span></div><img class="gd-cage" src="{{ asset('images/gd/cage.png') }}" alt=""></div>
             </section>
             <section class="gd-c" aria-labelledby="gd-h3">
                 <h2 class="gd-h" id="gd-h3"><svg class="ic"><use href="#i-calendar"/></svg>Upcoming Draws <a class="gd-more" href="{{ $r('player.draws') }}">View All →</a></h2>

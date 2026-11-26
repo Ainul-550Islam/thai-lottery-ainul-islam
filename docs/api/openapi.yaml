@@ -43,6 +43,12 @@ tags:
   - name: Promotions
   - name: Compliance
   - name: Health
+  - name: Games
+  - name: BankAccounts
+  - name: Cashback
+  - name: Dashboard
+  - name: Referral
+  - name: Rewards
 security:
   - bearerAuth: []
 paths:
@@ -652,6 +658,672 @@ paths:
       responses:
         '200':
           description: Summary.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenericEnvelope'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+  /api/v1/games:
+    get:
+      tags: [Games]
+      operationId: listGames
+      summary: Lottery games available to the caller
+      responses:
+        '200':
+          description: OK.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenericEnvelope'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+  /api/v1/games/{code}:
+    get:
+      tags: [Games]
+      operationId: getGame
+      summary: One game and its rules
+      parameters:
+        - name: code
+          in: path
+          required: true
+          description: Game code, for example `weekly` or `thai-government`.
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OK.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenericEnvelope'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+  /api/v1/games/{code}/upcoming:
+    get:
+      tags: [Games]
+      operationId: listGameUpcomingDraws
+      summary: Upcoming draws for a game
+      parameters:
+        - name: code
+          in: path
+          required: true
+          description: Game code, for example `weekly` or `thai-government`.
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OK.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenericEnvelope'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+  /api/v1/games/{code}/calendar:
+    get:
+      tags: [Games]
+      operationId: getGameCalendar
+      summary: Draw calendar for a game
+      parameters:
+        - name: code
+          in: path
+          required: true
+          description: Game code, for example `weekly` or `thai-government`.
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OK.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenericEnvelope'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+  /api/v1/games/{code}/results:
+    get:
+      tags: [Games]
+      operationId: listGameResults
+      summary: Published result history for a game
+      parameters:
+        - name: code
+          in: path
+          required: true
+          description: Game code, for example `weekly` or `thai-government`.
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OK.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenericEnvelope'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+  /api/v1/games/{code}/results/latest:
+    get:
+      tags: [Games]
+      operationId: getGameLatestResult
+      summary: Latest published result for a game
+      parameters:
+        - name: code
+          in: path
+          required: true
+          description: Game code, for example `weekly` or `thai-government`.
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OK.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenericEnvelope'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+  /api/v1/games/{code}/bets/quote:
+    post:
+      tags: [Games]
+      operationId: quoteGameBet
+      summary: Price a bet without placing it
+      parameters:
+        - name: code
+          in: path
+          required: true
+          description: Game code, for example `weekly` or `thai-government`.
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                bet_type:
+                  type: string
+                  description: 'Required unless `selections` is sent. Max 32 characters.'
+                number:
+                  type: string
+                  description: 'Digits only, max 16. Required unless `selections` is sent. Kept as a string so leading zeros survive.'
+                stake:
+                  type: string
+                  description: 'Decimal string with up to two places. Required unless `selections` is sent.'
+                selections:
+                  type: array
+                  items:
+                    type: object
+                  description: 'Exactly one {bet_type, number, stake} item, instead of the flat fields.'
+                funding_source:
+                  type: string
+                  description: 'Optional wallet to fund the bet from.'
+                voucher_id:
+                  type: string
+                  description: 'Optional voucher id, max 64.'
+                free_bet_voucher_id:
+                  type: string
+                  description: 'Optional free-bet voucher id, max 64.'
+      responses:
+        '200':
+          description: OK.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenericEnvelope'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '422':
+          $ref: '#/components/responses/Unprocessable'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+  /api/v1/games/{code}/bets:
+    post:
+      tags: [Games]
+      operationId: placeGameBet
+      summary: Place a bet on a game (adult + current legal consent required)
+      parameters:
+        - name: code
+          in: path
+          required: true
+          description: Game code, for example `weekly` or `thai-government`.
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [idempotency_key]
+              properties:
+                bet_type:
+                  type: string
+                  description: 'Required unless `selections` is sent. Max 32 characters.'
+                number:
+                  type: string
+                  description: 'Digits only, max 16. Required unless `selections` is sent. Kept as a string so leading zeros survive.'
+                stake:
+                  type: string
+                  description: 'Decimal string with up to two places. Required unless `selections` is sent.'
+                selections:
+                  type: array
+                  items:
+                    type: object
+                  description: 'Exactly one {bet_type, number, stake} item, instead of the flat fields.'
+                funding_source:
+                  type: string
+                  description: 'Optional wallet to fund the bet from.'
+                voucher_id:
+                  type: string
+                  description: 'Optional voucher id, max 64.'
+                free_bet_voucher_id:
+                  type: string
+                  description: 'Optional free-bet voucher id, max 64.'
+                idempotency_key:
+                  type: string
+                  description: 'Required, 8-128 characters. Replaying the same key never places a second bet.'
+                draw_id:
+                  type: integer
+                  description: 'Optional target draw id.'
+      responses:
+        '201':
+          description: Created.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenericEnvelope'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '422':
+          $ref: '#/components/responses/Unprocessable'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+  /api/v1/me/bank-accounts:
+    get:
+      tags: [BankAccounts]
+      operationId: listBankAccounts
+      summary: The caller's saved payout bank accounts
+      responses:
+        '200':
+          description: OK.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenericEnvelope'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+    post:
+      tags: [BankAccounts]
+      operationId: createBankAccount
+      summary: Save a payout bank account
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [bank_code, account_name, account_number]
+              properties:
+                bank_code:
+                  type: string
+                  description: 'Required. Must be a supported bank.'
+                account_name:
+                  type: string
+                  description: 'Required, 2-160 characters.'
+                account_number:
+                  type: string
+                  description: 'Required. Digits, dashes and spaces.'
+                is_default:
+                  type: boolean
+                  description: 'Optional. Make this the default account.'
+      responses:
+        '201':
+          description: Created.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenericEnvelope'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '422':
+          $ref: '#/components/responses/Unprocessable'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+  /api/v1/me/bank-accounts/{id}/default:
+    patch:
+      tags: [BankAccounts]
+      operationId: setDefaultBankAccount
+      summary: Make a saved account the default
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Bank account id.
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: OK.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenericEnvelope'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '422':
+          $ref: '#/components/responses/Unprocessable'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+  /api/v1/me/bank-accounts/{id}:
+    delete:
+      tags: [BankAccounts]
+      operationId: deleteBankAccount
+      summary: Remove a saved bank account
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Bank account id.
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: OK.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenericEnvelope'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '422':
+          $ref: '#/components/responses/Unprocessable'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+  /api/v1/me/cashback:
+    get:
+      tags: [Cashback]
+      operationId: getCashback
+      summary: Cashback balance and claim eligibility
+      responses:
+        '200':
+          description: OK.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenericEnvelope'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+  /api/v1/me/cashback/claim:
+    post:
+      tags: [Cashback]
+      operationId: claimCashback
+      summary: Claim available cashback; the amount is computed server-side
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [idempotency_key]
+              properties:
+                idempotency_key:
+                  type: string
+                  description: 'Required. Replaying the same key returns the original result with 200.'
+      responses:
+        '201':
+          description: Created.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenericEnvelope'
+        '200':
+          description: Replay of an earlier request with the same idempotency key.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenericEnvelope'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '422':
+          $ref: '#/components/responses/Unprocessable'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+  /api/v1/me/dashboard-summary:
+    get:
+      tags: [Dashboard]
+      operationId: getDashboardSummary
+      summary: Figures for the player dashboard
+      responses:
+        '200':
+          description: OK.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenericEnvelope'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+  /api/v1/me/referral-center:
+    get:
+      tags: [Referral]
+      operationId: getReferralCenter
+      summary: Referral code, referred players and commission
+      responses:
+        '200':
+          description: OK.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenericEnvelope'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+  /api/v1/me/referral-center/payout-requests:
+    post:
+      tags: [Referral]
+      operationId: requestReferralPayout
+      summary: Withdraw referral commission (adult + current legal consent required)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [amount, idempotency_key]
+              properties:
+                amount:
+                  type: string
+                  description: 'Required decimal string, up to two places.'
+                idempotency_key:
+                  type: string
+                  description: 'Required. Replaying the same key returns the original result with 200.'
+                member_bank_account_id:
+                  type: integer
+                  description: 'Optional saved bank account to pay out to.'
+                currency:
+                  type: string
+                  description: 'Optional currency code.'
+      responses:
+        '201':
+          description: Created.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenericEnvelope'
+        '200':
+          description: Replay of an earlier request with the same idempotency key.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenericEnvelope'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '422':
+          $ref: '#/components/responses/Unprocessable'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+  /api/v1/me/rewards/catalog:
+    get:
+      tags: [Rewards]
+      operationId: listRewardCatalog
+      summary: Rewards the caller can redeem with points
+      responses:
+        '200':
+          description: OK.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenericEnvelope'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+  /api/v1/me/rewards/history:
+    get:
+      tags: [Rewards]
+      operationId: listRewardHistory
+      summary: The caller's past reward claims, paginated
+      responses:
+        '200':
+          description: OK.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenericEnvelope'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+  /api/v1/me/rewards/{item}/claim:
+    post:
+      tags: [Rewards]
+      operationId: claimReward
+      summary: Redeem a catalog reward; the points cost is taken from the catalog
+      parameters:
+        - name: item
+          in: path
+          required: true
+          description: Catalog item identifier.
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [idempotency_key]
+              properties:
+                idempotency_key:
+                  type: string
+                  description: 'Required. Replaying the same key returns the original result with 200.'
+      responses:
+        '201':
+          description: Created.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenericEnvelope'
+        '200':
+          description: Replay of an earlier request with the same idempotency key.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenericEnvelope'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '422':
+          $ref: '#/components/responses/Unprocessable'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+  /api/v1/me/vip/progress:
+    get:
+      tags: [Rewards]
+      operationId: getVipProgress
+      summary: Current VIP tier and progress to the next one
+      responses:
+        '200':
+          description: OK.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenericEnvelope'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+  /api/v1/me/security/login-history:
+    get:
+      tags: [Security]
+      operationId: listLoginHistory
+      summary: Recent sign-ins on the caller's account
+      responses:
+        '200':
+          description: OK.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenericEnvelope'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+  /api/v1/me/security/login-summary:
+    get:
+      tags: [Security]
+      operationId: getLoginSummary
+      summary: Summary of recent sign-in activity
+      responses:
+        '200':
+          description: OK.
           content:
             application/json:
               schema:

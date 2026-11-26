@@ -53,7 +53,7 @@
     /** @param {DashboardState} s */
     function render(s) {
         if (!dash) return;
-        const d = new Date(s.live.drawAt), view = { ...s, live: { ...s.live, label: fDate.format(d) + ' | ' + fHM.format(d) } };
+        const d = s.live ? new Date(s.live.drawAt) : null, view = { ...s, live: s.live ? { ...s.live, label: fDate.format(d) + ' | ' + fHM.format(d) } : null };
         $$('[data-bind]').forEach((n) => {
             const v = get(view, n.dataset.bind); if (v == null) return;
             const f = n.dataset.fmt || 'text'; n.textContent = FMT[f](v);
@@ -66,7 +66,7 @@
         });
         $('#gd-pc').textContent = s.level.pct + '%';
         const b = $('#gd-bdg'); b.textContent = s.user.notifications; b.hidden = !s.user.notifications;
-        $('#gd-cd').dataset.at = s.live.drawAt;
+        $('#gd-cd').dataset.at = s.live ? s.live.drawAt : '';
         $('#gd-bar').style.width = Math.min(100, Math.max(0, s.level.pct)) + '%';
         results = s.results;
         $('#gd-tabs').replaceChildren(...results.map((r, i) => { const t = el('button', 'gd-tab', r.label); t.type = 'button'; t.dataset.i = i; t.setAttribute('role', 'tab'); return t; }));

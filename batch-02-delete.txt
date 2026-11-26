@@ -1,0 +1,117 @@
+# Batch 02 — paths to REMOVE from the repository.
+#
+# A ZIP cannot delete a file, so this list is the other half of the overlay:
+# unzip batch-02-product-surface.zip over the repository, then delete exactly the
+# paths below. scripts/repo-hygiene.sh reads this file and refuses to run if any
+# line is not a repository-relative resources/ path, so the list cannot be used
+# to delete anything outside the frontend surface.
+#
+# Every entry here was verified to have ZERO inbound references before removal:
+# no @vite() entry in vite.config.js, no static or dynamic import from any other
+# module, and no view or test that names the file. The build (npm run build) and
+# tests/js (node --test) both pass without them.
+#
+# ---------------------------------------------------------------------------
+# 1. TypeScript/TSX duplicates of live JavaScript modules.
+# ---------------------------------------------------------------------------
+# The bundle is vanilla JavaScript. Each of these files is a second, drifting
+# copy of a module that also exists as .js; only the .js copy is ever loaded, so
+# a fix applied to the .ts twin changed nothing and a reviewer reading it saw a
+# page that "is wired" when it was not. Node cannot even parse them here (the
+# toolchain runs node 20, where ts/tsx is not loadable), so they cannot be built
+# or tested.
+resources/js/admin-lottofin.ts
+resources/js/auth-portal.ts
+resources/js/deposit-portal.ts
+resources/js/glo-results-checker.ts
+resources/js/lottery-history.ts
+resources/js/player-dashboard.ts
+resources/js/player-dashboard.js
+resources/js/player-profile.js
+resources/js/player-profile.ts
+resources/js/player-settings.ts
+resources/js/thai-lottery-betting.js
+resources/js/thai-lottery-betting.ts
+resources/js/wallet-management.js
+resources/js/wallet-management.ts
+resources/js/withdrawal-portal.js
+resources/js/withdrawal-portal.ts
+#
+# ---------------------------------------------------------------------------
+# 2. React mockups — resources/js/components/ and the quarantine copy.
+# ---------------------------------------------------------------------------
+# Neither tree is imported by app.js, is a Vite entry, or is referenced by any
+# view. The .tsx files were the original mock screens; they were superseded by
+# the Blade + vanilla-JS pages that ship now. The screens they depicted are
+# served by real views (player/security.blade.php, results/index.blade.php,
+# deposit/index.blade.php, admin Filament pages), so keeping 12 unreachable
+# React components in the bundle only made the dead code look alive.
+# resources/js/components/ ends up as an EMPTY directory once these files are
+# gone; it can be removed with `rmdir` and nothing references it.
+# resources/js/_unused/README.md records why the React tree was dropped.
+resources/js/components/AuthCard.tsx
+resources/js/components/DepositPortal.tsx
+resources/js/components/GloResultsChecker.tsx
+resources/js/components/LotteryHistory.tsx
+resources/js/components/LottoFinAdminDashboard.tsx
+resources/js/components/PlayerDashboard.tsx
+resources/js/components/PlayerProfile.tsx
+resources/js/components/PlayerSecuritySettings.tsx
+resources/js/components/PlayerSettings.tsx
+resources/js/components/ThaiLotteryBetting.tsx
+resources/js/components/WalletManagement.tsx
+resources/js/components/WithdrawalPortal.tsx
+resources/js/_unused/components/AuthCard.tsx
+resources/js/_unused/components/DepositPortal.tsx
+resources/js/_unused/components/GloResultsChecker.tsx
+resources/js/_unused/components/LotteryHistory.tsx
+resources/js/_unused/components/LottoFinAdminDashboard.tsx
+resources/js/_unused/components/PlayerDashboard.tsx
+resources/js/_unused/components/PlayerProfile.tsx
+resources/js/_unused/components/PlayerSecuritySettings.tsx
+resources/js/_unused/components/PlayerSettings.tsx
+resources/js/_unused/components/ThaiLotteryBetting.tsx
+resources/js/_unused/components/WalletManagement.tsx
+resources/js/_unused/components/WithdrawalPortal.tsx
+#
+# ---------------------------------------------------------------------------
+# 3. Superseded player-security-settings module (all three files).
+# ---------------------------------------------------------------------------
+# These asked for a "security PIN" that no table in this schema stores, wrote
+# "Cool-off break set for <duration>" into the page without calling anything,
+# and the TypeScript twin posted a limits object the API rejects (three decimal
+# strings with different names). The working implementation of the same controls
+# is resources/js/player-settings.js against
+# /api/v1/player/security/limits, and the canonical page is
+# resources/views/player/security.blade.php.
+resources/js/player-security-settings.js
+resources/js/player-security-settings.ts
+resources/css/player-security-settings.css
+#
+# ---------------------------------------------------------------------------
+# 4. Orphan page portals with no page behind them.
+# ---------------------------------------------------------------------------
+# Each was a self-contained mock that opened with alert() as its only feedback
+# and called no endpoint. Their pages are now served by a real module
+# (public-pages.js, pages/fees.js, pages/faq.js, lottery/bet-slip.js,
+# frontend-api.js) or were removed from the product entirely — withdraw.js and
+# bet-slip.js duplicate the authenticated pages that Batch 01 owns, and
+# svgbet-slip.js is the module that is actually loaded on the bet page.
+resources/js/account-grade-portal.js
+resources/js/bet-slip.js
+resources/js/deposit.js
+resources/js/download-app-portal.js
+resources/js/faq-portal.js
+resources/js/fees-portal.js
+resources/js/home-keypad.js
+resources/js/lottery-history.js
+resources/js/privacy-portal.js
+resources/js/prize-verification-portal.js
+resources/js/terms-portal.js
+resources/js/withdraw.js
+# 5. Superseded duplicates of the modules the pages actually load. The pages
+#    mount resources/js/pages/account-verification.js and pages/prize-verification.js;
+#    these two older copies called no shared reporter (they alerted at the user)
+#    and nothing imports, builds or views them.
+resources/js/account-verification-portal.js
+resources/js/glo-results-checker.js
