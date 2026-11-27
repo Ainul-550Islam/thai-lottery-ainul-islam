@@ -100,6 +100,14 @@ final class RewardIdempotencyTest extends TestCase
                 'DB_CONNECTION' => 'sqlite',
                 'DB_DATABASE' => $dbPath,
                 'DB_BUSY_TIMEOUT' => '15000',
+                // The workers must open this database in the WAL mode the setup step
+                // put it in. Without this they inherit phpunit.xml's
+                // DB_JOURNAL_MODE=MEMORY, so Laravel's connector runs
+                // `pragma journal_mode = MEMORY` on connect; leaving WAL needs an
+                // exclusive lock that SQLite does NOT wait for (busy_timeout is
+                // ignored), so whichever worker connects second dies with
+                // "database is locked" before reaching the code under test.
+                'DB_JOURNAL_MODE' => 'WAL',
                 'CACHE_STORE' => 'array',
                 'QUEUE_CONNECTION' => 'sync',
             ];
