@@ -389,6 +389,13 @@ final class CredentialRevocationIntegrityTest extends TestCase
 
     public function test_social_login_never_auto_links_or_issues_a_session_without_reviewed_linking(): void
     {
+        // This test pins the CLOSED state (master switch off). The switch must not be decided by
+        // the machine's .env: a developer with GOOGLE_SIGNIN_ENABLED=true and real credentials
+        // locally would otherwise get the Google button on /login and fail the closed-notice
+        // assertion below, while CI (switch unset => off) passed. The OPEN state - including the
+        // rule that an e-mail match alone never logs in or links - is covered by GoogleSignInTest.
+        config(['services.google.enabled' => false]);
+
         $user = User::factory()->create(['email' => 'owner@example.test']);
         $user->forceFill(['provider' => 'google', 'provider_id' => 'old-unverified-link'])->save();
         $client = $this->createMock(Client::class);

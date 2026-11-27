@@ -62,9 +62,23 @@ final class Batch2OwnershipTest extends TestCase
         return $sources;
     }
 
+    /**
+     * Repository-relative path with forward slashes, on every OS.
+     *
+     * WHY NOT str_replace(base_path().'/', ...): on Windows base_path() ends in a backslash
+     * style path, the roots above append "app/Services/..." with forward slashes, and
+     * RecursiveDirectoryIterator re-joins children with a backslash, so a single path looks like
+     * "C:\repo\app/Services/LotteryGames\RulesProfileResolver.php". "C:\repo/" never occurs in
+     * it, nothing is stripped, and the exact-list assertion below compares an absolute Windows
+     * path against "app/Services/...". Normalising both sides to "/" first makes the same
+     * assertion hold on Windows and Linux, and str_starts_with() strips only a leading prefix.
+     */
     private function relative(string $path): string
     {
-        return str_replace(base_path().'/', '', $path);
+        $normalised = str_replace('\\', '/', $path);
+        $base = rtrim(str_replace('\\', '/', base_path()), '/').'/';
+
+        return str_starts_with($normalised, $base) ? substr($normalised, strlen($base)) : $normalised;
     }
 
     /**
