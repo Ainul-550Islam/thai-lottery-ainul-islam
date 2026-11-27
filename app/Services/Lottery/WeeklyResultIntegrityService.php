@@ -466,7 +466,25 @@ class WeeklyResultIntegrityService
 
         $path = str_starts_with($configured, '/') ? $configured : base_path($configured);
 
-        return is_file($path) && is_executable($path) ? $path : null;
+        if (is_file($path) && is_executable($path)) {
+            return $path;
+        }
+
+        // Cargo names the Windows build `weekly-result-integrity.exe`, while the
+        // configured path (.env.example, .env.ci, config default) is the
+        // extension-less Linux name. Without this the verifier built by
+        // scripts/build-weekly-native-verifier.sh is never found on Windows and
+        // every native test fails or skips. Only an existing .exe is accepted;
+        // on Linux/macOS nothing changes.
+        if (PHP_OS_FAMILY === 'Windows' && pathinfo($path, PATHINFO_EXTENSION) === '') {
+            $windowsPath = $path.'.exe';
+
+            if (is_file($windowsPath) && is_executable($windowsPath)) {
+                return $windowsPath;
+            }
+        }
+
+        return null;
     }
 
     public function isNativeVerifierAvailable(): bool

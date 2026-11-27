@@ -68,6 +68,9 @@ final class QueueDispatchContractTest extends TestCase
         'CertifyDrawResultJob' => 'Certification is a deliberate human act. TickCommand excludes publication from the automated lifecycle for the same reason.',
         'PublishCertifiedDrawJob' => 'Publication is human-approved by design; see TickCommand::STEPS, which omits lottery:publish-result on purpose.',
 
+        // ── Scheduled through its command instead ───────────────────────
+        'SnapshotWalletBalancesJob' => 'routes/console.php schedules the wallet:snapshot-balances command (daily 00:35, onOneServer, withoutOverlapping), which calls the same WalletBalanceSnapshotService synchronously. The queued job is the retryable variant of that one implementation and has no producer until the schedule is moved onto the queue.',
+
         // ── Awaiting an upstream producer that does not exist yet ───────
         'MatchDrawPrizesJob' => 'Self-guards on certification plus result fingerprint, so it fails closed. Its producer is the certification flow, which is operator-triggered and not yet automated.',
         'ReconcileCompletedDrawJob' => 'Post-settlement reconciliation; belongs with the Phase 5.2 financial close.',

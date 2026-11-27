@@ -234,7 +234,12 @@ final class PlayerWebController
             'level' => ['tier' => null, 'pct' => null, 'next' => null], // no VIP levels in the database yet
         ];
 
-        return view('player.dashboard-gold', ['state' => $state]);
+        return view('player.dashboard-gold', [
+            'state' => $state,
+            // The countdown target is the OPEN draw's betting close, rendered by the server
+            // as a full ISO 8601 instant; null when no draw is open (no fabricated fallback).
+            'bettingClosesAt' => $openDraw?->betting_close_at,
+        ]);
     }
 
     /** Sum potential_payout of this user's won bets through Money (no float math). */

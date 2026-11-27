@@ -46,7 +46,9 @@ return [
         'expiration_time' => DateInterval::createFromDateString(
             env('PERMISSION_CACHE_EXPIRATION', '24 hours')
         ),
-        'key' => env('PERMISSION_CACHE_KEY', 'spatie.permission.cache'),
+        // The env templates ship this key EMPTY (credential-hygiene rule for *_KEY), and
+        // an empty value would otherwise become the cache key itself. Empty means default.
+        'key' => env('PERMISSION_CACHE_KEY') ?: 'spatie.permission.cache',
         'store' => env('PERMISSION_CACHE_STORE', 'default'),
     ],
 

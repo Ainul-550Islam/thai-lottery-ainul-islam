@@ -86,7 +86,9 @@ return [
     */
 
     'fx' => [
-        'driver' => env('PLAYER_FX_DRIVER', 'null'),
+        // The templates ship PLAYER_FX_DRIVER=null, and env() turns the word null into PHP
+        // null, which would bypass a plain default. Null or empty both mean the 'null' driver.
+        'driver' => env('PLAYER_FX_DRIVER') ?: 'null',
         'manual_source' => env('PLAYER_FX_MANUAL_SOURCE', 'manual_admin'),
     ],
 

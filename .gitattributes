@@ -1,9 +1,15 @@
-# Keep shell/python/Docker files LF so they run inside Linux containers even when the
-# Windows working tree uses core.autocrlf=true.
-*.sh        text eol=lf
-*.py        text eol=lf
-Dockerfile* text eol=lf
-artisan     text eol=lf
-*.sh text eol=lf
-*.py text eol=lf
-*.yml text eol=lf
+# Every text file is stored AND checked out with LF, on every OS.
+#
+# Why: the test-suite reads tracked files byte-for-byte (.env.example,
+# phpunit.xml, workflows, Blade views, ...) and asserts on them with
+# regular expressions. With core.autocrlf=true a Windows checkout turns
+# `KEY=` into `KEY=\r`, and `/^KEY=.+/m` then matches the `\r`, so a test
+# that is green on Linux CI fails on the Windows working tree. Pinning the
+# working-tree EOL here makes that class of failure impossible instead of
+# fixing it one file at a time. Git still detects binaries (png, ttf, zip,
+# the Rust binary, ...) itself and never converts them.
+* text=auto eol=lf
+
+# Windows batch scripts are the one exception: cmd.exe needs CRLF.
+*.bat text eol=crlf
+*.cmd text eol=crlf

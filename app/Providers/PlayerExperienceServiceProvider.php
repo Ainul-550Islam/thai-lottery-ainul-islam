@@ -7,7 +7,10 @@ namespace App\Providers;
 use App\Services\Fx\FxRateProvider;
 use App\Services\Fx\ManualFxRateProvider;
 use App\Services\Fx\NullFxRateProvider;
+use App\Services\Loyalty\LoyaltyPointsService;
+use App\Services\Loyalty\PointsMultiplierService;
 use App\Services\Wallet\WalletOverviewService;
+use App\Services\Wallet\WalletService;
 use Illuminate\Contracts\Foundation\Application;
 use Illuminate\Support\ServiceProvider;
 
@@ -45,6 +48,17 @@ final class PlayerExperienceServiceProvider extends ServiceProvider
 
     public function register(): void
     {
+        // The campaign collaborator on LoyaltyPointsService is `?PointsMultiplierService
+        // $campaigns = null`. The container fills a nullable parameter that has a
+        // default with that default (null) instead of resolving the class, so an
+        // auto-wired LoyaltyPointsService never saw an active campaign. Wire it
+        // explicitly. With no active campaign PointsMultiplierService is an exact
+        // no-op, so earning is unchanged until a campaign runs.
+        $this->app->bind(LoyaltyPointsService::class, static fn (Application $app): LoyaltyPointsService => new LoyaltyPointsService(
+            $app->make(WalletService::class),
+            $app->make(PointsMultiplierService::class),
+        ));
+
         $this->app->singleton(FxRateProvider::class, function (Application $app): FxRateProvider {
             $driver = (string) config('player_experience.fx.driver', 'null');
 
